@@ -1,0 +1,24 @@
+{
+  "contractVersion": 1,
+  "algorithmVersion": "1.0.0",
+  "text": "CQ TEST",
+  "normalizedText": "CQ TEST",
+  "morseWords": [
+    [
+      "-.-.",
+      "--.-"
+    ],
+    [
+      "-",
+      ".",
+      "...",
+      "-"
+    ]
+  ],
+  "wpm": 20,
+  "toneHz": 600,
+  "sampleRateHz": 8000,
+  "snrDb": -20,
+  "seed": 42,
+  "rampMs": 5
+}

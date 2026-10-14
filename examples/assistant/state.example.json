@@ -1,0 +1,8 @@
+{
+  "frequencyHz": 14030000,
+  "mode": "CW",
+  "txBusy": false,
+  "backendConnected": true,
+  "generation": 3,
+  "blockedReason": null
+}

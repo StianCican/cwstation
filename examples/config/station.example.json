@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "socketPath": "../../run/cwstation.sock",
+  "dbPath": "../../data/cwstation.sqlite",
+  "txTimeoutMs": 5000,
+  "requestTimeoutMs": 10000,
+  "proposalTtlMs": 60000,
+  "approvalTtlMs": 60000,
+  "maxFrameBytes": 65536
+}

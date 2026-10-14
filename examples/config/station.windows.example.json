@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "dbPath": "../../data/cwstation.windows.sqlite",
+  "txTimeoutMs": 5000,
+  "proposalTtlMs": 60000,
+  "approvalTtlMs": 60000,
+  "shutdownTimeoutMs": 3000,
+  "shutdownWatchdogMs": 8000
+}

@@ -1,0 +1,17 @@
+{
+  "contractVersion": 1,
+  "algorithmVersion": "1.0.0",
+  "text": "E",
+  "normalizedText": "E",
+  "morseWords": [
+    [
+      "."
+    ]
+  ],
+  "wpm": 60,
+  "toneHz": 600,
+  "sampleRateHz": 8000,
+  "snrDb": 60,
+  "seed": 42,
+  "rampMs": 5
+}

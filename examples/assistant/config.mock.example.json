@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "provider": "mock",
+  "model": "mock-advisor",
+  "timeoutMs": 30000,
+  "maxOutputTokens": 256
+}

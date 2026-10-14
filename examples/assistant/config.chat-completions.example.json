@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "provider": "chat-completions",
+  "endpoint": "https://api.example.invalid/v1/chat/completions",
+  "model": "your-model-name",
+  "apiKeyEnv": "CWAI_API_KEY",
+  "timeoutMs": 30000,
+  "maxOutputTokens": 256
+}

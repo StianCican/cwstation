@@ -1,0 +1,22 @@
+node_modules/
+dist/
+data/*.sqlite
+data/*.sqlite-*
+*.log
+
+# Local repository metadata, recovery snapshots, and runtime state.
+.git-local/
+.local-backups/
+.agents/
+.codex/
+.aws/
+logs/
+data/
+
+# Local secrets; committed examples use explicit *.example.json files.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.credentials.yaml

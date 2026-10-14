@@ -1,0 +1,35 @@
+{
+  "name": "cwstation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "daemon": "node dist/apps/daemon.js",
+    "daemon:dev": "tsx apps/daemon.ts",
+    "cwctl": "node dist/apps/cwctl.js",
+    "cwrig": "node dist/apps/cwrig.js",
+    "cwrig:dev": "tsx apps/cwrig.ts",
+    "cwwave": "node dist/apps/cwwave.js",
+    "cwwave:dev": "tsx apps/cwwave.ts",
+    "cwmaint": "node dist/apps/cwmaint.js",
+    "cwmaint:dev": "tsx apps/cwmaint.ts",
+    "cwai": "node dist/apps/cwai.js",
+    "cwai:dev": "tsx apps/cwai.ts",
+    "dev": "tsx apps/cwctl.ts",
+    "test": "node --import tsx --test --test-timeout=60000 tests/*.test.ts",
+    "test:built": "npm run build && node --test --test-timeout=60000 dist/tests/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@ozdemirburak/morse-code-translator": "7.0.0",
+    "serialport": "13.0.0"
+  }
+}
