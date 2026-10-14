@@ -300,12 +300,18 @@ npm run cwwave -- verify --task examples/signal/demo.task.json \
 ## 测试
 
 ```bash
-npm test          # tsx 直接运行 node:test（每个用例都有超时上界）
-npm run test:built  # 先构建，再对同一批测试运行
+npm run test:preflight  # 检查子进程输出、本地 IPC 和本机 HTTP 监听能力
+npm test               # 前检通过后，以 tsx 运行源码测试
+npm run test:built     # 前检通过后，构建并运行同一批编译版测试
+node scripts/verify-platform.mjs --source --list  # 只列出测试，不启动前检或构建
 
 # 两平台原生构建及编译测试，不依赖 shell 展开 glob
 node scripts/verify-platform.mjs
 ```
+
+源码与编译版从同一份清单发现 `tests/` 和 `packages/` 下的 `*.test.ts`，包含服务内测试。
+前检失败返回2并标记 `environment_unavailable`，不会启动构建或产品测试；这表示环境阻塞，不能当作测试通过。
+构建或测试失败返回1；列清单和帮助返回0。完整回归保留 Node 的文件隔离；关闭隔离的定点诊断不替代全仓验收。
 
 Windows PowerShell 可直接运行 `node scripts/verify-platform.mjs`。本机 WSL 验证 Windows
 原生运行时使用 `node.exe scripts/verify-platform.mjs`，运行时输出应为 `platform=win32`。

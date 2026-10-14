@@ -2,6 +2,14 @@
 
 更新日期：2026-10-15。
 
+## BASE-002 可复现测试入口（2026-10-15）
+
+- 用户同意后续规划，当前执行测试基线第一项。Git起点81ee2d6干净；忽略产物另做`.local-backups/20261015-013904-test-baseline/workspace-before.tar`完整目录快照，tar比较exit0；没有修改AGENTS、产品源码、测试源码、用户库或试验账本。
+- 已证实当前环境的最小Node子进程探针可同时返回`status=0`、`error.code=EPERM`、空stdout；异步Node子进程同样空输出，本地socket/HTTP监听EPERM。这解释一类空JSON/子服务退出假象，但不宣称逐项关闭此前全部失败。
+- 复用scripts/verify-platform.mjs统一源码/编译版验证入口，加入环境前检、清单/帮助/参数拒绝和启动错误检查；两个模式发现同一25个测试文件，包含此前遗漏的服务内套件。npm test/test:built前检失败exit2，不build/跑产品测试；新增npm run test:preflight。正常成功路径和Windows路径本轮未验收。
+- 实际build exit0；四套件civ-context-read/civ-read-arbiter/serial/civ-tx-plan以关闭隔离方式做定点诊断，源码61/61与编译版61/61，无跳过，不相加或外推全仓通过。最终前检/源码/编译入口均exit2准确报告环境阻塞，清单独立glob核对exit0。
+- DSH调用沿已有DSH_HOME/headless，启动写cordis.yml遭EROFS、exit1；配置cmp不变，无任务执行/审议，不改凭据或全局profile，Codex接手局部修正。任务`docs/tasks/BASE-002-test-baseline.md`与证据`docs/evidence/BASE-002-test-baseline.md`；状态待DSH补审，完整回归基线未验收，不能进入设备回归。
+
 ## 进度核查与 Git 基线（2026-10-15）
 
 - 用户要求检查进度、建立 Git 并规划后续。本轮只改版本管理入口和进度文档，不改产品源码/tests/控制协议，不接真实电台。AGENTS.md 保持原文，其 Phase 0 描述不代表当前进度。

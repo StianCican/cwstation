@@ -20,8 +20,9 @@
     "cwai": "node dist/apps/cwai.js",
     "cwai:dev": "tsx apps/cwai.ts",
     "dev": "tsx apps/cwctl.ts",
-    "test": "node --import tsx --test --test-timeout=60000 tests/*.test.ts",
-    "test:built": "npm run build && node --test --test-timeout=60000 dist/tests/*.test.js"
+    "test": "node scripts/verify-platform.mjs --source",
+    "test:built": "node scripts/verify-platform.mjs --built",
+    "test:preflight": "node scripts/verify-platform.mjs --preflight"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
