@@ -2,6 +2,14 @@
 
 更新日期：2026-10-15。
 
+## 进度核查与 Git 基线（2026-10-15）
+
+- 用户要求检查进度、建立 Git 并规划后续。本轮只改版本管理入口和进度文档，不改产品源码/tests/控制协议，不接真实电台。AGENTS.md 保持原文，其 Phase 0 描述不代表当前进度。
+- `.git` 被当前环境挂载为只读空目录，标准初始化失败；已在 `.git-local/` 建立 main 分支，初始源码提交 `14a4e92`。用 `bash scripts/git-local.sh status` 等操作，普通 Git 自动发现暂不可用；无远端/发布。本地临时作者为 `CW Station Contributors <cwstation@localhost>`。
+- 非 Git 修改前完整目录保护：`.local-backups/20261015-011147-progress-git/workspace-before.tar`，`tar -df` exit0 无差异；包含既有源码、产物、依赖、日志和数据，不是 SQLite 在线一致性备份。运行数据/账本保留但不入库，后续仍须单独备份。
+- 本轮 build exit0，仲裁/serial/tx-plan 专项36/36通过；npm test 与编译版全仓均失败。关闭测试隔离的源码诊断共360项，230通过/122失败/8跳过；服务内单独9项为6通过/3失败。部分为本地socket监听EPERM，另有子进程提前退出/空输出等待归因，不能标记全仓通过。Windows/Julia/实机未在本轮重验。
+- 已更新 README/ROADMAP，新增 `docs/PROGRESS-20261015.md`、`docs/GIT.md` 和 `docs/evidence/BASE-001-progress-git.md`。下一步先复现并分类回归失败，再按已确认方向设计统一操作契约、接入既有宿主、Fake故障矩阵、受控实机回归；规划尚未作DSH设计审议，不作为公共契约定稿。
+
 ## P2-015 受控 CW 发送闭环（2026-10-15）
 
 - 按用户要求合并推进：P2-014 八查询仲裁新增离线动态验证 6/6；新增显式 `rig-controld --cw-trial` 受控试验入口和 `scripts/cw-trial.sh`，默认 `rig.sh` 与只读服务不变。
