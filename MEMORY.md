@@ -2,6 +2,15 @@
 
 更新日期：2026-10-19。
 
+## P2-017A 统一操作 Fake 首切片（2026-10-19）
+
+- 用户明确同意“本次由 Codex 单独复核替代 DSH，确认修订后的契约后推进 Fake 离线实现”；按 ADR-019 记录流程例外，不再以DSH错误阻塞此范围，也不冒充独立审议通过。BASE-002历史补审不自动转为通过。
+- 显式 `bash rig.sh --mode cw-trial --simulate [--demo E|TEST]` 接入既有宿主、唯一Fake设备子进程与继承IPC交互端；不指定模式仍沿旧只读链路。严格两段schema、宿主角色/期限/关联与有界槽位；服务集中九值预检、批准、一次派发、停止与查询。
+- 使用单独fakeFixtureVersion1临时JSONL夹具，串行追加/fsync、锁、损坏/链接拒绝、重启先查原operationId；不是第9节生产账本或旧历史导入实现，宿主每次新夹具仅适用于模拟，不供真实发送绕过unknown。退出保留路径，不改用户旧记录/SQLite。
+- reconnect明确unavailable；无真实transport/parser、公共只读新投影或旧试验入口迁移。P2-017完整迁移/P2-018矩阵/生产持久化与真实接入仍待后续，不把本切片称为实机就绪。新模式拒绝真实端口参数；未打开COM17。
+- 保护基线058b1f0、before.bundle与完整workspace-before.tar在.local-backups/20261019-p2-017-fake/，归档后tar比对exit0。实际验证、失败修正、最终结果和R01-R12见docs/evidence/P2-017A-统一操作Fake首切片.md。
+- 本次Fake首切片离线验收通过：专项37项；最终26文件406项全仓，Linux源码/编译各398通过、0失败、8跳过；Windows原生源码/编译各397通过、0失败、9跳过。Windows内部symlink分支另有权限诊断。验证器并发限制4；旧abort测试改为提前建立独立管道连接，保留500ms发送和取消断言，未改旧产品行为。失败日志保留，非实机或完整迁移验收。
+
 ## P2-016 v0.3 续办与审议阻塞（2026-10-19）
 
 - 用户要求完成Git，已提交3521b12（Fake启动修复、回归证据及v0.2候选）；随后要求继续。本轮起点干净，保护目录.local-backups/20261019-p2-016-review-resume/含before.bundle、非凭据cordis副本及v0.2文件副本。

@@ -1,0 +1,21 @@
+# P2-017A v1 统一操作 Fake 首切片
+
+日期：2026-10-19。执行/复核：Codex；按用户明确授权的本次流程例外，非独立交叉审议。当前成果与验证见 `../evidence/P2-017A-统一操作Fake首切片.md`。
+
+状态：Fake离线首切片通过。37项专项；26文件406项全仓，Linux源码/编译各398通过、8跳过，Windows原生源码/编译各397通过、9跳过，均0失败。完整P2-017迁移与P2-018生产矩阵仍待后续。
+
+目标：形成可运行的统一宿主/设备服务/交互端离线链路，验证批准绑定、一次派发、写前记录、撤销、停止、重复请求和重启查询。依赖 P2-016 v0.3 与 ADR-019。不接真实串口、不改 SQLite/旧账本、不建设新工具平台。
+
+输入：058b1f0 干净 main、既有启动监督路径、设计第2/4/5/6/8/10节。修改权由 Codex 单独持有，无 DSH 同时编辑。
+
+输出范围：`packages/device-operation/src/` 的协议、Fake 服务与临时夹具记录；`apps/rig-operation-{host,service}.ts`、`apps/cw-operation.ts`；既有三个启动入口的显式路由；专项测试及文档。
+
+验证期间的局部扩展：26文件默认并发下出现旧3秒启动等待与Windows旧500毫秒abort测试波动；隔离复查后将现有 `scripts/verify-platform.mjs` 的文件并发上限设为4，保持文件隔离、清单、断言和期限。修改前除完整快照另保存verify-platform-before-concurrency.mjs；不创建新测试平台或改设备行为。
+
+Windows的abort在隔离运行仍失败，进一步定位为发送开始后建立新连接时包含Windows桥进程启动，可能错过500毫秒发送窗口；只将该测试的第二连接提前建立，独立连接、500毫秒发送和取消断言不变。修改前另存daemon-test-before-connection-fix.ts，修正后的Windows源码定点1/1通过；全仓最终结果另记证据。
+
+验收：精确 schema/角色/期限/上限；九值逐项变化拒绝；批准一次消费；intent fsync 期间 revoke/stop/close/TTL/通道丢失后零派发；挂起写盘不饿死停止；重启原 ID 查询零追加/零重发；空/损坏/重复持有/链接账本拒绝；编译 IPC 全链路与无 IPC 独立启动拒绝；双平台回归和退出资源核查。
+
+允许的首切片限制：临时 Fake 夹具不是生产账本，reconnect 暂 unavailable；无真实 parser/transport，T06 迟到 FB、T07 重连旧代次以及第9节生产初始化/导入矩阵尚待 P2-017 后续与 P2-018。不能因此宣布完整统一迁移或实机就绪。范围需扩大到真实设备/公共接口改造时再升级讨论，不自行开口。
+
+保护：修改前 Git 058b1f0 + before.bundle，源码/忽略产物/依赖/数据完整快照在 `.local-backups/20261019-p2-017-fake/workspace-before.tar`，归档完成后 tar 比对 exit0。构建、测试和日志写入均在基线之后。

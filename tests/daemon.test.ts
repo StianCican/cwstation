@@ -269,9 +269,12 @@ dtest("abort is an independent request that preempts in-flight transmit", async 
 
   const client = await DaemonClient.connect(daemon.socketPath, { requestTimeoutMs: 20_000 });
   t.after(() => client.close());
+  // Windows opens a bridge process per connection; establish it before the timed transmission.
+  const abortClient = await DaemonClient.connect(daemon.socketPath, { requestTimeoutMs: 20_000 });
+  t.after(() => abortClient.close());
   const pending = client.request("transmit", { id: proposal.id });
   await sleep(60);
-  const abort = await request(daemon.socketPath, "abort");
+  const abort = await abortClient.request("abort") as Json;
   assert.equal(abort.aborted, true);
   const result = (await pending) as Json;
   assert.equal(result.status, "cancelled");

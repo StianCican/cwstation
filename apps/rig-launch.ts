@@ -146,6 +146,15 @@ async function forceKillTree(child: ChildProcess): Promise<void> {
 }
 
 export async function main(argv: readonly string[]): Promise<number> {
+  if (argv[0] === "--mode") {
+    try {
+      const { runFakeOperationHost } = await import("./rig-operation-host.js");
+      return await runFakeOperationHost(argv, projectRoot());
+    } catch (error) {
+      reportHost({ event: "error", code: "fake-mode", error: text(error) });
+      return RIG_LAUNCH_EXIT_USAGE;
+    }
+  }
   // 1) 显式复用服务参数解析器：非法参数直接失败，不 fork 任何进程。
   let options: RigStatusdOptions;
   try {

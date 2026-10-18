@@ -8,7 +8,20 @@
 - 控制 CLI 只通过本地 IPC（Unix socket 或 Windows 命名管道）请求，不直接打开数据库，也绝不自动批准。
 - 提案、批准、执行、结果、审计都持久化到 SQLite，并带显式 schema 迁移。
 - 常规发射控制流程仍仅限 Fake；IC-7300 只读监视已完成实机验证。独立受控试验已验证一次命令应答和本机侧音，尚未证明实际报文完成、停止或射频行为。
-- 下一阶段将统一设备操作接口接入既有启动与监督链路，默认 `bash rig.sh` 保持只读。
+- 统一设备操作接口已接入既有宿主的 Fake 首切片，默认 `bash rig.sh` 保持只读；生产账本、旧入口迁移与真实接入仍待后续验收。
+
+## 统一操作 Fake 试用
+
+```bash
+npm run build
+bash rig.sh --mode cw-trial --simulate
+# 或运行一次明确的离线自动演示：
+bash rig.sh --mode cw-trial --simulate --demo E
+```
+
+交互命令为 `status`、`propose E` / `propose TEST`、`approve`、`execute`、`stop`、`get`、`quit`。普通交互需显式批准；`--demo` 仅用于模拟自动演示。发送等待期间仍可输入停止。独立启动交互端没有继承IPC时拒绝控制。
+
+此入口只支持模拟，拒绝端口参数。宿主stderr报告本次临时夹具路径，退出后保留记录；夹具不是生产账本，不能作为真实历史恢复或可靠射频停止证明。新模式尚不支持重连，旧试验入口尚待迁移。范围与证据见 `docs/adr/ADR-019-统一操作Fake首切片.md` 和 `docs/evidence/P2-017A-统一操作Fake首切片.md`。
 
 ## 文档入口
 
@@ -300,6 +313,7 @@ npm run cwwave -- verify --task examples/signal/demo.task.json \
 ## 测试
 
 ```bash
+npm run build          # 新宿主集成用例会启动 dist 下的编译版子进程
 npm run test:preflight  # 检查子进程输出、本地 IPC 和本机 HTTP 监听能力
 npm test               # 前检通过后，以 tsx 运行源码测试
 npm run test:built     # 前检通过后，构建并运行同一批编译版测试
@@ -311,9 +325,13 @@ node scripts/verify-platform.mjs
 
 源码与编译版从同一份清单发现 `tests/` 和 `packages/` 下的 `*.test.ts`，包含服务内测试。
 前检失败返回2并标记 `environment_unavailable`，不会启动构建或产品测试；这表示环境阻塞，不能当作测试通过。
+
+验证器保留每文件隔离，并将并发测试文件限制为4，避免集成测试同时创建大量子进程挤占短时序检查；用例断言和产品期限不放宽。
 构建或测试失败返回1；列清单和帮助返回0。完整回归保留 Node 的文件隔离；关闭隔离的定点诊断不替代全仓验收。
 
 2026-10-15续办验证：Linux源码/编译各361通过、0失败、8项平台跳过；Windows原生源码/编译各360通过、0失败、9项平台/权限跳过。编译版Fake客户端已修正为启动编译后的子服务。共享WSL依赖目录运行Windows源码模式需要锁文件中的Windows esbuild可选包；编译版无需tsx。详细日志、跳过范围与待DSH补审状态见`docs/evidence/BASE-002-test-baseline.md`。
+
+2026-10-19 Fake首切片验证：新增37项专项，全仓26文件406项。Linux源码/编译各398通过、0失败、8跳过；Windows原生源码/编译各397通过、0失败、9跳过，内部符号链接权限分支另有诊断。旧abort用例提前建立第二连接，避免桥进程启动占用发送窗口；产品时限不变。失败修正及边界见`docs/evidence/P2-017A-统一操作Fake首切片.md`。
 
 Windows PowerShell 可直接运行 `node scripts/verify-platform.mjs`。本机 WSL 验证 Windows
 原生运行时使用 `node.exe scripts/verify-platform.mjs`，运行时输出应为 `platform=win32`。

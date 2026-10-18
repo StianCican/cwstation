@@ -161,7 +161,7 @@ async function main(args) {
   }
   report("test-plan", { count: files.length, files });
   return runStep("tests", [...(options.mode === "source" ? ["--import", "tsx"] : []),
-    "--test", "--test-reporter=tap", "--test-timeout=60000", ...files.map((path) => join(root, path))], 180_000);
+    "--test", "--test-concurrency=4", "--test-reporter=tap", "--test-timeout=60000", ...files.map((path) => join(root, path))], 180_000);
 }
 
 try {

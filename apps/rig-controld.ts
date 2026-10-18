@@ -23,6 +23,10 @@ export const RIG_CONTROLD_USAGE =
 
 /** rig-controld 入口：默认复用只读服务；`--cw-trial` 显式进入受控试验。 */
 export async function main(argv: readonly string[]): Promise<number> {
+  if (argv[0] === "--operation-fake-fixture") {
+    const { runFakeOperationService } = await import("./rig-operation-service.js");
+    return await runFakeOperationService(argv.slice(1));
+  }
   if (argv[0] === "--cw-trial") {
     const { runCwTrial } = await import("./rig-cw-trial.js");
     return await runCwTrial(argv.slice(1));

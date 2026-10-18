@@ -6,12 +6,17 @@ set -euo pipefail
 # rig-statusd，也不删除固定 socket 或他人的日志。
 
 project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if [[ "${1:-}" == --mode ]]; then
+  # The host validates this entire explicit Fake-only argument set before forking.
+  cd -- "$project_root"
+  exec node dist/apps/rig-launch.js "$@"
+fi
 simulate=false
 case "${1:-}" in
   "") ;;
   --simulate) simulate=true ;;
   -h|--help)
-    printf 'Usage: bash rig.sh [--simulate]\nDefault: IC-7300, COM17 on Windows/WSL, 19200 baud, read-only.\nHistory: logs/rig-status-history.jsonl\nThe host forks dist/apps/rig-controld.js and runs cwrig monitor on the same endpoint.\n'
+    printf 'Usage: bash rig.sh [--simulate]\n       bash rig.sh --mode cw-trial --simulate [--demo E|TEST]\nDefault: IC-7300, COM17 on Windows/WSL, 19200 baud, read-only.\nHistory: logs/rig-status-history.jsonl\nThe host forks dist/apps/rig-controld.js and runs cwrig monitor on the same endpoint.\n'
     exit 0 ;;
   *) printf 'Usage: bash rig.sh [--simulate]\n' >&2; exit 2 ;;
 esac
