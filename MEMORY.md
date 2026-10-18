@@ -1,6 +1,24 @@
 # CW Station 项目记忆
 
-更新日期：2026-10-15。
+更新日期：2026-10-19。
+
+## P2-016 统一操作契约候选（2026-10-19）
+
+- 用户同意继续下一项。Codex读取当前入口与既有契约，新增docs/design/P2-016-统一设备操作契约.md v0.2、对应任务及REV-017自查；候选沿rig.sh/rig-launch/rig-controld，默认只读、控制走继承IPC、唯一设备子进程执行批准/预检/记录/调度。CLI不打开串口，AI仅提案，现有Fake核心不在本阶段迁移。
+- 候选保留真实unverified身份，只允许后续显式人工试验例外；E/TEST、一次批准/派发、任何真实intent维持unknown阻断，不以FB/侧音/RX/17 FF/释放端口解除。停止优先及磁盘挂起预算是设计要求，未实施/验证。
+- DSH沿原DSH_HOME/headless只读审议exit1，STREAM_CLOSED/SSE流提前结束，没有报告；BASE-002附带补审也未完成。未读凭据/改profile/切换通道或反复重试，cordis.yml比较不变。不能写成独立审议通过。
+- Codex自查v0.1两项S2并保存首稿：账本初始化/旧记录导入规格和逐方法result schema不够具体；已在v0.2第8/9节补齐精确字段、状态、摘要输入、来源归档/hash、发布/恢复与故障矩阵。候选仍不是实现基线，下步完成DSH审议后提交用户确认公共接口，再进入P2-017，不直接开设备。Windows目录元数据持久化未确认时，设计要求真实组装阻断，不静默忽略。
+- 本轮仅文档，无build/tests/串口/数据库操作；10月15日四种回归是历史证据。Git HEAD fb5cbc2，六文件既有修改先保存existing-changes.patch与完整快照到.local-backups/20261019-p2-016-design/，tar比较exit0，SHA256及最终比较见REV-017；已有产品源码/产物/测试与用户数据未改。
+
+## BASE-002 续办：双平台完整回归与入口修复（2026-10-15）
+
+- 用户要求继续项目，先完成既定测试基线。当前环境Linux/Windows五项前检均通过；旧EPERM是历史环境证据，不再作为当前阻塞。Git起点`fb5cbc2`干净，完整快照为`.local-backups/20261015-base002-resume/workspace-before.tar`，建立后tar比较exit0。
+- 首轮Linux源码/编译各361通过、0失败、8项Windows专属跳过；Windows编译首轮331通过、29失败、9跳过。29项失败均为默认Fake客户端在编译模式仍选择源码，启动tsx时缺少Windows esbuild，不能归为设备行为失败。
+- Codex局部修复`packages/rig-control/src/client.ts`：默认子服务与客户端源码/编译模式一致，编译版不因源码文件存在而启动tsx；显式entry仍沿原逻辑。修改前快照已覆盖源码/tests/产物和运行数据。未改公共协议、发射/停止/unknown实现或串口。
+- 最终Linux源码/编译各361通过、0失败、8跳过；Windows原生Node24.16.0源码/编译各360通过、0失败、9跳过；均为25文件、369项，保留文件隔离、exit0，不相加。Windows编译成功发生在补Windows esbuild之前。随后仅新增锁文件已有的`@esbuild/win32-x64@0.28.2`可选依赖，下载包SHA512与锁文件一致；package/lock未改，用于源码回归。
+- Windows跳过为3项Unix状态服务IPC、3项Unix配置/权限、3项符号链接权限；另有信号校验内部符号链接分支诊断跳过。跨平台绿色回归不代表所有Windows分支或实机重新验收。没有打开COM17、真实发射或改用户库/账本。
+- DSH沿既有headless补审启动返回DeepSeek API `HTTP 402`、exit1，无报告，未读取凭据、未更换profile；cordis.yml与修改前副本cmp一致。Codex自查与差异复核完成，BASE-002保持待DSH补审，不宣称完整任务已验收。下一步补审并准备P2-016统一操作契约设计，公共接口定稿仍需用户确认。
+- 任务/证据为`docs/tasks/BASE-002-test-baseline.md`与`docs/evidence/BASE-002-test-baseline.md`续办段；最终差异与快照核查、残留进程结果见该证据。
 
 ## BASE-002 可复现测试入口（2026-10-15）
 

@@ -1,7 +1,7 @@
 # BASE-002 v1 测试基线执行与自查
 
 日期：2026-10-15。实施/复核：Codex；DSH未执行成功，不能作为交叉审议记录。
-状态：局部验证入口已修正，待DSH补审及完整回归；未验收完整测试基线。
+当前状态：续办双平台源码/编译回归零失败，仍待DSH补审，完整任务未验收。以下v1记录保留历史，当前结果见末尾v2续办段。
 
 ## 对象与保护
 
@@ -94,3 +94,68 @@ Codex接手全部修改权。没有DSH报告，因此任务保留待补审，不
 
 在允许Node子进程输出、本地IPC/HTTP监听的原生环境运行npm run test:preflight、npm test、npm run test:built；成功前检后才能对剩余失败逐项分类。
 完整源码/编译回归通过且DSH补审完成后，才能验收本任务并进入依赖该基线的设备回归；统一契约草稿可独立准备，不能跳过相应验收门槛。
+
+## v2 续办：完整回归与默认Fake入口修复
+
+日期2026-10-15，执行与复核Codex，用户要求继续既定工作；DSH未成功产出审议报告。本段替代v1的当前环境阻塞结论，历史失败日志仍保留。
+
+保护：Git起点`fb5cbc2`干净；修改前完整快照`.local-backups/20261015-base002-resume/workspace-before.tar`，SHA256 `b1f97bb21d0322acff6f50f60b1c94b94faf2388830ac9695e5f3484f0ccdfa8`，tar比较exit0。源码修复、文档、构建、测试日志与新增开发依赖均在此保护范围内；新增node_modules/@esbuild/win32-x64原先不存在。
+
+### 发现与修复
+
+Windows编译首轮：331通过、29失败、9跳过、exit1。29项失败日志均含缺失`@esbuild/win32-x64`，集中在默认Fake客户端启动的两套件；客户端不论自身是否编译，都因apps/rig-faked.ts存在而选择tsx源码子服务。其他显式编译入口路径可正常工作。这是已证实的S2启动模式缺陷，不是CI-V或发射状态机缺陷。
+
+`packages/rig-control/src/client.ts`默认入口现随模块模式：源码.ts选择源码入口，编译.js选择dist/apps/rig-faked.js；显式entry不变。编译模式缺产物仍报启动失败，不回退源码。无需改变协议、设备控制或批准/unknown语义。最终SHA256 `52d24986d2d518a615f6726f69f56302c45c8ed07c855e6f07364468f811c3d3`。
+
+Windows编译v2在未安装Windows esbuild时已零失败，证明修复没有被安装依赖掩盖。随后为Windows源码模式下载锁文件已有`@esbuild/win32-x64@0.28.2`，独立计算SHA512与package-lock精确相等后解包；Linux可选包和package/lock保持原样。下载日志、原包保存在本轮备份目录。
+
+### 实际回归
+
+日志均在上述备份目录。Linux Node24.18.1、Windows原生Node24.16.0（D盘node.exe）；所有完整测试保留文件隔离、25个文件、369项，结果不相加。源码/编译和跨平台并未出现产品控制协议差异。
+
+| 命令 / 日志 | 退出码与结果 |
+|---|---|
+| Linux --preflight（工具输出；完整入口日志亦含五项） | 0，五项均通过 |
+| Windows --preflight / windows-preflight-v1.log | 0，五项均通过 |
+| npm test / source-v1.log（修复前） | 0，361通过、0失败、8跳过 |
+| npm run test:built / built-v1.log（修复前） | 0，361通过、0失败、8跳过 |
+| Windows --built / windows-built-v1.log | 1，331通过、29失败、9跳过，失败原始证据保留 |
+| npm run build / build-v2.log | 0 |
+| npm test / source-v2.log（最终） | 0，361通过、0失败、8跳过 |
+| npm run test:built / built-v2.log（最终） | 0，361通过、0失败、8跳过 |
+| Windows --built / windows-built-v2.log（最终） | 0，360通过、0失败、9跳过，原生bridge构建成功 |
+| Windows --source / windows-source-v2.log（最终） | 0，360通过、0失败、9跳过，原生bridge构建成功 |
+
+Windows命令使用`'/mnt/d/Program Files/nodejs/node.exe' scripts/verify-platform.mjs --built`或`--source`。Linux八项跳过均为Windows桥接专属。Windows九项跳过：三项Unix状态服务IPC、三项Unix配置/文件权限、三项符号链接权限；信号校验另有内部symlink分支诊断跳过。因此不宣称所有Windows分支全覆盖、权限扩展或实机重验。没有打开COM17、发射、改用户数据库/设备账本或运行Julia。
+
+最终四份日志SHA256（顺序对应上表最终源码Linux、编译Linux、编译Windows、源码Windows）：
+
+- source-v2.log：`fb5b578c640e05da8a2785b32937134f7d08b71ade6c507fb1b693a735d595b0`
+- built-v2.log：`3350d110accb23da865e30262a505ef70bea3cdcd28d7abfdab3ff55d57f98a6`
+- windows-built-v2.log：`e5cbfcf99824e5c59d6776ab7a21a46163ad956dac1d04482b9a69c8b28ca9e2`
+- windows-source-v2.log：`b76262f35b33335e8ecbcb09b01a6e251a17d9f2068b6bacf6251c1f85f508b0`
+
+### DSH与阶段自查
+
+调用既有`DSH_HOME=/home/li0214/.dsh dsh --profile headless`只读补审，返回API HTTP 402、exit1，原始日志dsh-review.log；没有报告，不能作为交叉审议。未读取凭据或改全局profile，非凭据cordis.yml与修改前副本cmp一致；不反复重试或解释成已经证实的凭据/配额原因。
+
+开始前核对AGENTS/MEMORY/任务/进度与Git，建立完整保护；第一条完整回归核查前检成功与隔离；Windows失败后证实根因，将单文件局部修复明确纳入任务范围且确认已在基线内；修改后diff及两平台源码/编译复验；交付检查保护差异和进程残留。无公共接口定稿或设备接入检查点。
+
+最终保护比较：`tar -df`逐项核对data、AGENTS、rig.sh、tests、apps、package/lock、scripts、native及node_modules所有基线文件，无差异、exit0（新增可选包单独列明，tar比较不检查额外文件）；Git仅六个预期文件变更，diff --check通过。dist为明确构建输出，logs新增临时测试daemon日志；用户数据与既有测试/设备实现未改。Linux进程查询与Windows CIM查询均无本轮daemon/rig服务/headless残留；已有DSH web进程未操作。四份最终日志独立断言五项前检通过、369项、fail0且没有not ok，exit0。
+
+| 标准 | v2结果与依据 |
+|---|---|
+| R01 | 通过执行范围：完整回归与单文件启动修复，补审仍未完成 |
+| R02 | 通过：复用现有客户端与子服务，无新宿主或旁路 |
+| R03 | 通过局部兼容：默认入口随运行模式，显式entry及协议/schema不变 |
+| R04 | 通过已有回归：非法参数、帧、响应及启动失败覆盖；未放宽校验 |
+| R05 | 通过离线范围：全程Fake/mock与临时数据，无真实设备批准 |
+| R06 | 通过已有离线回归：停止/超时/unknown未改；真实停止证据未验证 |
+| R07 | 通过已覆盖IPC回归；Windows状态服务Unix专属用例仍跳过 |
+| R08 | 通过已覆盖范围：Windowsbridge测试执行；无第二用户/远程登录验收 |
+| R09 | 通过已运行故障/生命周期用例与残留检查；全局profilecmp一致 |
+| R10 | 通过四种完整回归，无失败；明确平台/权限跳过，不外推设备 |
+| R11 | 通过：Git基线、完整快照及最终diff/保护比较 |
+| R12 | 通过：保留首轮失败、旧环境和DSH失败，当前状态待补审 |
+
+结论：当前环境与已发现启动缺陷已处理，四种完整回归零失败；BASE-002待DSH补审后再作最终验收。可准备P2-016草案，不能据此跳过公共接口确认或进入真实设备回归。

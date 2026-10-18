@@ -56,7 +56,7 @@ export interface FakeRigClientOptions {
   readonly ledgerDir: string;
   /** 稳定配置设备标识；默认 fake-ic7300-01。 */
   readonly deviceInstanceId?: string;
-  /** 显式服务入口；未指定时优先源码 apps/rig-faked.ts，其次编译产物。 */
+  /** 显式服务入口；默认与当前客户端使用相同的源码/编译模式。 */
   readonly entry?: string;
   readonly requestTimeoutMs?: number;
   readonly closeTimeoutMs?: number;
@@ -117,7 +117,7 @@ const PROJECT_ROOT = findProjectRoot(MODULE_DIR);
 
 function resolveDefaultEntry(): string {
   const source = join(PROJECT_ROOT, "apps", "rig-faked.ts");
-  if (existsSync(source)) return source;
+  if (import.meta.url.endsWith(".ts") && existsSync(source)) return source;
   return join(PROJECT_ROOT, "dist", "apps", "rig-faked.js");
 }
 

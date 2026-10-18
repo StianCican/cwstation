@@ -313,6 +313,8 @@ node scripts/verify-platform.mjs
 前检失败返回2并标记 `environment_unavailable`，不会启动构建或产品测试；这表示环境阻塞，不能当作测试通过。
 构建或测试失败返回1；列清单和帮助返回0。完整回归保留 Node 的文件隔离；关闭隔离的定点诊断不替代全仓验收。
 
+2026-10-15续办验证：Linux源码/编译各361通过、0失败、8项平台跳过；Windows原生源码/编译各360通过、0失败、9项平台/权限跳过。编译版Fake客户端已修正为启动编译后的子服务。共享WSL依赖目录运行Windows源码模式需要锁文件中的Windows esbuild可选包；编译版无需tsx。详细日志、跳过范围与待DSH补审状态见`docs/evidence/BASE-002-test-baseline.md`。
+
 Windows PowerShell 可直接运行 `node scripts/verify-platform.mjs`。本机 WSL 验证 Windows
 原生运行时使用 `node.exe scripts/verify-platform.mjs`，运行时输出应为 `platform=win32`。
 Windows验证入口会先构建C#管道桥接。仅运行`npm run build`时另需执行
