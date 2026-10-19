@@ -208,6 +208,57 @@ test("stop cancels active and waiting reads even when ordinary slots are occupie
   await h.service.close();
 });
 
+test("queued read timeout preserves the active predecessor barrier", async () => {
+  const adapter = createFakeAdapter(1), base = adapter.read;
+  const entered = deferred<void>(), release = deferred<void>(); let calls = 0;
+  adapter.read = async signal => { calls++; if (calls === 1) { entered.resolve(); await release.promise; } return base(signal); };
+  const h = harness(memoryJournal(), adapter);
+  const first = h.call("context.refresh"); await entered.promise;
+  try {
+    assert.equal((await h.call("context.refresh", {}, 40)).error?.code, "timeout");
+    const third = await h.call("context.refresh");
+    const beforeRelease = calls;
+    release.resolve();
+    assert.equal((await first).ok, true); assert.equal(third.error?.code, "busy");
+    await delay(0);
+    await h.value("context.refresh");
+    assert.equal(beforeRelease, 1); assert.equal(calls, 2);
+  } finally { release.resolve(); await first; await h.service.close(); }
+});
+
+test("timed out uncooperative read cannot publish late context or overlap a retry", async () => {
+  const adapter = createFakeAdapter(1), base = adapter.read;
+  const h = harness(memoryJournal(), adapter), ids = await h.approve();
+  const values = await base(new AbortController().signal), release = deferred<Values>();
+  let calls = 0; let signal: AbortSignal | undefined;
+  adapter.read = async current => { calls++; signal = current; return release.promise; };
+  try {
+    assert.equal((await h.call("context.refresh", {}, 40)).error?.code, "timeout");
+    const cancelled = signal?.aborted;
+    const context = (await h.value("device.status")).context;
+    assert.equal((await h.call("context.refresh", {}, 40)).error?.code, "timeout");
+    release.resolve(values); await delay(10);
+    assert.equal(cancelled, true); assert.equal(context, null); assert.equal(calls, 1);
+    assert.equal((await h.value("device.status")).context, null);
+    assert.equal((await h.call("cw.execute", ids)).error?.code, "expired");
+    assert.equal(adapter.sends, 0);
+  } finally { release.resolve(values); await h.service.close(); }
+});
+
+test("close retains ownership until an uncooperative read settles", async () => {
+  const adapter = createFakeAdapter(1), journal = memoryJournal(); let releases = 0;
+  journal.release = () => { releases++; };
+  const entered = deferred<void>(), release = deferred<Values>();
+  adapter.read = async () => { entered.resolve(); return release.promise; };
+  const h = harness(journal, adapter), pending = h.call("context.refresh"); await entered.promise;
+  try {
+    const result = await h.service.close(process.hrtime.bigint() + 60000000n);
+    assert.equal((await pending).ok, false);
+    assert.equal(result.portReleased, false); assert.equal(releases, 0);
+  } finally { release.resolve([14250000, "CW", 2, 14250000, "RX", false, false, false, "SEMI"]); await pending; }
+  await delay(10); assert.equal((await h.value("device.status")).context, null);
+});
+
 test("intent storage failure blocks new approvals and never sends", async () => {
   const journal = memoryJournal(), adapter = createFakeAdapter(1), h = harness(journal, adapter);
   const ids = await h.approve(); journal.beforeAppend = async () => { throw new Error("disk failure"); };

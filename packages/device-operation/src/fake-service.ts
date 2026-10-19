@@ -122,11 +122,24 @@ export class FakeOperationService {
     this.readCount++;
     const preceding = this.readTail;
     let release!: () => void;
-    this.readTail = new Promise<void>(resolve => { release = resolve; });
+    const finished = new Promise<void>(resolve => { release = resolve; });
+    // A cancelled waiter still depends on every earlier physical read settling.
+    this.readTail = preceding.then(() => finished);
+    void this.readTail.then(() => { this.readCount--; });
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal.addEventListener("abort", abort, { once: true });
+    let pending: Promise<Values> | undefined;
+    let started = false;
     try {
       await within(preceding, end, signal);
       signal.throwIfAborted();
-      const values = await within(this.adapter.read(signal), end, signal);
+      if (this.now() >= end) throw new OperationError("timeout");
+      started = true;
+      pending = this.adapter.read(controller.signal);
+      const values = await within(pending, end, signal);
+      signal.throwIfAborted();
+      if (this.now() >= end) throw new OperationError("timeout");
       if (values.length !== 9 || !Number.isSafeInteger(values[0]) || values[0] < 1 ||
         !["CW", "CW-R", "USB"].includes(values[1]) || ![1, 2, 3].includes(values[2]) ||
         !Number.isSafeInteger(values[3]) || values[3] < 1 || !["RX", "TX"].includes(values[4]) ||
@@ -143,7 +156,14 @@ export class FakeOperationService {
       } };
       this.snapshot = snapshot;
       return snapshot;
-    } finally { this.readCount--; release(); }
+    } catch (error) {
+      if (started) { this.invalidate(); this.snapshot = undefined; controller.abort(); }
+      throw error;
+    } finally {
+      signal.removeEventListener("abort", abort);
+      // An adapter may ignore cancellation; retain ownership until it really settles.
+      if (pending) void pending.then(release, release); else release();
+    }
   }
   private checks(values: Values): string[] {
     const failed: string[] = [];
@@ -272,7 +292,7 @@ export class FakeOperationService {
   }
   async close(end = this.now() + 5000000000n): Promise<{ portReleased: boolean; recordsFlushed: boolean; rfStopEvidence: "simulationStopped" | "unavailable" }> {
     if (this.closeResult) return this.closeResult;
-    this.phase = "closing"; this.invalidate(); this.readAbort.abort();
+    this.phase = "closing"; this.invalidate(); this.snapshot = undefined; this.readAbort.abort();
     this.closeResult = (async () => {
       let rfStopEvidence: "simulationStopped" | "unavailable" = "unavailable";
       const active = [...this.journal.operations.values()].find(op => op.send.requestDispatched && op.unresolved && this.origins.get(op.operationId) === this.generation);
@@ -281,7 +301,7 @@ export class FakeOperationService {
           if (stopped.observation.evidence === "simulationStopped") rfStopEvidence = "simulationStopped"; } catch { /* Evidence stays unavailable. */ }
       }
       let portReleased = false, recordsFlushed = false;
-      try { await within(this.adapter.close(), end); portReleased = true; } catch { /* Report separately. */ }
+      try { await within(Promise.all([this.adapter.close(), this.readTail]), end); portReleased = true; } catch { /* Report separately. */ }
       try { await within(this.activeDone, end); } catch { this.storageFault = true; }
       try { await within(this.journal.flush(), end); recordsFlushed = !this.storageFault; } catch { /* Keep lock until process exit. */ }
       if (recordsFlushed && portReleased) this.journal.release();
