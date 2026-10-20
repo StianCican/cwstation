@@ -10,7 +10,24 @@
 - 常规发射控制流程仍仅限 Fake；IC-7300 只读监视已完成实机验证。独立受控试验已验证一次命令应答和本机侧音，尚未证明实际报文完成、停止或射频行为。
 - 统一设备操作接口已接入既有宿主的 Fake 首切片，默认 `bash rig.sh` 保持只读；生产账本、旧入口迁移与真实接入仍待后续验收。
 
-## 统一操作 Fake 试用
+## 当前主链路：单次设备试验
+
+当前开发集中优化既有 `CwTrialSession`：一个设备会话、一次人工确认、一次固定短报文，复用相同的模拟/真实CI-V代码；不需要另启动daemon、SQLite或IPC设备服务。默认 `bash rig.sh` 仍是只读监视。
+
+```bash
+npm run build
+bash rig.sh --cw-trial --help
+# 离线试验：指定仅供模拟使用的独立记录目录；有intent的目录再次运行会阻断。
+bash rig.sh --cw-trial --simulate --simulate-confirm E --record-dir logs/cw-trial-simulation
+```
+
+流程：八查询预检 → 人工确认（模拟为显式simulate-confirm）→ 重读核对 → intent刷盘 → 一次E/TEST → 停止请求 → 退出释放。`scripts/cw-trial.sh`仅作为此入口的兼容转发。真实设备仍需现场单独授权、显式端口与keying-off确认及交互TTY，本次整顿不执行真实试验。
+
+退出0仅表示命令流程观察到应答且清理完成，不能证明报文完成或物理停发；退出6表示关闭未确认，7表示发送/停止未观察到应答，其他非零值表示拒绝或失败。任何真实intent仍保持未解决，不得换目录或删除记录绕过。现阶段是单次受控试验，不是自动连续操作系统。
+
+## 保留的 Fake IPC 实验
+
+此三进程链路暂停扩展，保留既有行为和测试；它不是当前设备主链路，也不接真实串口。
 
 ```bash
 npm run build

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { CivReadOnlyClient } from "../packages/devices/src/civ.js";
 import { openSerialCivTransport, ALLOWED_CIV_READ_REQUESTS,
+  openCwTrialSerialTransport, ALLOWED_CW_TRIAL_WRITES,
   type SerialPortLike, type SerialPortCallback, type SerialPortOpenSettings,
 } from "../packages/devices/src/serial.js";
 import { main, runSerialRead, runSimulation } from "../apps/cwrig.js";
@@ -55,6 +56,24 @@ function options(port: FakePort, path = `FAKE-${++sequence}`) {
     closeTimeoutMs: 20, portFactory: () => port };
 }
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 2));
+
+test("selected trial transport requires explicit confirmation and only permits fixed messages", async () => {
+  const fake = new FakePort(), opts = options(fake);
+  await assert.rejects(openCwTrialSerialTransport({ ...opts, confirmKeyingOff: false }), /confirmKeyingOff/);
+  assert.equal(fake.calls.length, 0);
+  const transport = await openCwTrialSerialTransport({ ...opts, confirmKeyingOff: true });
+  try {
+    for (const bytes of ALLOWED_CW_TRIAL_WRITES) await transport.write(Uint8Array.from(bytes));
+    assert.equal(fake.writes.length, 3);
+    for (const bytes of [
+      [0xfe, 0xfe, 0x94, 0xe0, 0x17, 0x53, 0x4f, 0x53, 0xfd],
+      [0xfe, 0xfe, 0x94, 0xe0, 0x1c, 0, 1, 0xfd],
+      [0xfe, 0xfe, 0x94, 0xe0, 5, 0, 0, 0, 0, 0, 0xfd],
+    ]) await assert.rejects(transport.write(Uint8Array.from(bytes)), /non-whitelisted/);
+    assert.equal(fake.writes.length, 3);
+  } finally { await transport.close(); }
+  assert.equal(transport.isClosed, true);
+});
 
 test("serial open settings, initialization order, normal close and reopen", async () => {
   const fake = new FakePort();

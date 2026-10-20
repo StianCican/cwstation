@@ -129,6 +129,7 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
 
 export interface CwTrialIo {
   readonly isTTY: boolean;
+  readonly signal?: AbortSignal;
   write(line: string): void;
   prompt(question: string): Promise<string>;
   close?(): void;
@@ -154,10 +155,14 @@ function defaultIo(): CwTrialIo {
     output: process.stdout,
     terminal: Boolean(process.stdin.isTTY),
   });
+  const inputClosed = new AbortController();
+  readline.on("SIGINT", () => process.emit("SIGINT"));
+  readline.once("close", () => inputClosed.abort(new CwTrialInterrupted("input closed")));
   return {
     isTTY: Boolean(process.stdin.isTTY),
+    signal: inputClosed.signal,
     write: (line) => process.stdout.write(`${line}\n`),
-    prompt: (question) => readline.question(question),
+    prompt: (question) => readline.question(question, { signal: inputClosed.signal }),
     close: () => readline.close(),
   };
 }
@@ -197,7 +202,8 @@ function usageLine(): string {
 /**
  * 运行受控 CW 试验。返回进程退出码：
  * 0 成功/帮助；1 预检读取或内部错误；2 用法或无 TTY 拒绝；3 未解决意图/未确认/
- * 拒绝确认；4 预检不合格；5 确认后上下文变化或重读失败。
+ * 拒绝确认；4 预检不合格；5 确认后上下文变化或重读失败；6 关闭未确认；
+ * 7 发送或停止未观察到应答。0仅表示命令流程完成，不证明物理完成/停止。
  */
 export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDeps = {}): Promise<number> {
   let options: CwTrialCliOptions;
@@ -221,12 +227,23 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
   const ownsIo = deps.io === undefined;
   let store: CwTrialRecordStore | undefined;
   let session: CwTrialSession | undefined;
+  let interruptError: CwTrialInterrupted | undefined;
   let rejectInterrupt: ((error: Error) => void) | undefined;
   const interrupted = new Promise<never>((_resolve, reject) => {
     rejectInterrupt = reject;
   });
   void interrupted.catch(() => undefined);
-  const onSigint = (): void => rejectInterrupt?.(new CwTrialInterrupted("interrupted by SIGINT"));
+  const interrupt = (signal: string): void => {
+    interruptError ??= new CwTrialInterrupted(`interrupted by ${signal}`);
+    rejectInterrupt?.(interruptError);
+  };
+  const onSigint = (): void => interrupt("SIGINT");
+  const onSigterm = (): void => interrupt("SIGTERM");
+  const checkInterrupted = (): void => {
+    if (interruptError) throw interruptError;
+    io.signal?.throwIfAborted();
+  };
+  process.on("SIGINT", onSigint); process.on("SIGTERM", onSigterm);
 
   try {
     if (!options.simulate) {
@@ -243,6 +260,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
     store = deps.openStore !== undefined
       ? await deps.openStore(options.recordDir)
       : await CwTrialRecordStore.open(options.recordDir);
+    checkInterrupted();
     if (await store.hasUnresolvedIntent()) {
       io.write(
         `cw-trial: blocked; ${options.recordDir} has an unresolved send intent. ` +
@@ -250,13 +268,16 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       );
       return 3;
     }
+    checkInterrupted();
 
     const transport = await (deps.createTransport ?? defaultCreateTransport)(options);
     session = new CwTrialSession({ transport, queryTimeoutMs: options.timeoutMs });
+    checkInterrupted();
 
     let context: CwTrialContext;
     try {
       context = await session.readContext();
+      checkInterrupted();
     } catch (error) {
       io.write(`cw-trial: preflight read failed; no message was sent: ${message(error)}`);
       return 1;
@@ -281,11 +302,11 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       }
       typed = options.simulateConfirm;
     } else {
-      process.on("SIGINT", onSigint);
-      typed = await io.prompt(
+      typed = await Promise.race([io.prompt(
         `Type "${options.message}" to confirm ONE real CW send, anything else aborts: `,
-      );
+      ), interrupted]);
     }
+    checkInterrupted();
     if (typed !== options.message) {
       io.write("cw-trial: confirmation declined; no message was sent");
       return 3;
@@ -293,6 +314,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
 
     try {
       const reread = await session.readContext();
+      checkInterrupted();
       const rereadFingerprint = computeCwTrialContextFingerprint({
         message: options.message,
         context: reread,
@@ -316,6 +338,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       contextFingerprint: fingerprint,
       detail: `frame ${civPlanHex(planCivCwMessage(options.message))}`,
     });
+    checkInterrupted();
 
     const send = await session.sendMessage(options.message);
     io.write(`cw-trial: send outcome=${send.outcome}; ${send.detail}`);
@@ -327,6 +350,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
     });
 
     let stopped = false;
+    let acknowledged = send.outcome === "ack_observed";
     const requestStop = async (): Promise<void> => {
       if (stopped) return;
       stopped = true;
@@ -336,6 +360,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
         detail: `frame ${civPlanHex(planCivCwStop())}`,
       });
       const stop = await session!.sendStop();
+      acknowledged = acknowledged && stop.outcome === "ack_observed";
       io.write(`cw-trial: stop outcome=${stop.outcome}; ${stop.detail}`);
       await store!.append({
         event: "stop_result",
@@ -370,29 +395,38 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
           continue;
         }
         if (command === "q") break;
-        io.write("cw-trial: sending is finished; enter S to request stop or Q to exit");
+        io.write("cw-trial: send attempted; completion is unknown. Enter S to request stop or Q to exit");
       }
       if (!stopped) await requestStop();
     }
-    return 0;
+    return acknowledged ? 0 : 7;
   } catch (error) {
     io.write(`cw-trial: failed: ${message(error)}`);
     return 1;
   } finally {
-    if (!options.simulate) process.off("SIGINT", onSigint);
+    process.off("SIGINT", onSigint); process.off("SIGTERM", onSigterm);
+    let cleanupExit: number | undefined;
     if (session !== undefined) {
       try {
         await session.close();
-        if (store !== undefined) {
+      } catch (error) {
+        cleanupExit = 6;
+        io.write(`cw-trial: close error: ${message(error)}`);
+      }
+      if (store !== undefined) {
+        try {
           await store.append({
             event: "session_close",
             detail: `closeConfirmed=${session.view().closeConfirmed}; phase=${session.view().phase}`,
           });
+        } catch (error) {
+          cleanupExit ??= 1;
+          io.write(`cw-trial: close record error: ${message(error)}`);
         }
-      } catch (error) {
-        io.write(`cw-trial: close error: ${message(error)}`);
       }
     }
     if (ownsIo) io.close?.();
+    // Cleanup evidence takes precedence over an earlier successful command flow.
+    if (cleanupExit !== undefined) return cleanupExit;
   }
 }

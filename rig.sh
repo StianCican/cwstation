@@ -1,13 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# P2-003b: rig.sh 只负责检查编译产物并把服务参数交给 rig-launch 宿主。
-# 串口由 rig-launch fork 出的 rig-controld 独占；rig.sh 不再直接启动
-# rig-statusd，也不删除固定 socket 或他人的日志。
+# Default: supervised read-only monitoring. Explicit --cw-trial reuses the
+# one-shot session directly; its legacy script forwards here.
 
 project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if [[ "${1:-}" == --cw-trial ]]; then
+  shift
+  if [[ ! -f "$project_root/dist/apps/rig-controld.js" ]]; then
+    printf 'Build missing: run npm run build in %s first.\n' "$project_root" >&2
+    exit 1
+  fi
+  cd -- "$project_root"
+  if [[ -n "${WSL_INTEROP:-}" || -r /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
+    windows_node="${CWSTATION_WINDOWS_NODE:-/mnt/d/Program Files/nodejs/node.exe}"
+    if [[ ! -x "$windows_node" ]]; then
+      printf 'Windows Node not found: %s\n' "$windows_node" >&2
+      exit 1
+    fi
+    windows_root=$(wslpath -w "$project_root")
+    exec "$windows_node" "$windows_root\\dist\\apps\\rig-controld.js" --cw-trial "$@"
+  fi
+  exec node dist/apps/rig-controld.js --cw-trial "$@"
+fi
 if [[ "${1:-}" == --mode ]]; then
-  # The host validates this entire explicit Fake-only argument set before forking.
+  # Frozen IPC experiment, retained for compatibility and regression tests.
   cd -- "$project_root"
   exec node dist/apps/rig-launch.js "$@"
 fi
@@ -16,7 +33,7 @@ case "${1:-}" in
   "") ;;
   --simulate) simulate=true ;;
   -h|--help)
-    printf 'Usage: bash rig.sh [--simulate]\n       bash rig.sh --mode cw-trial --simulate [--demo E|TEST]\nDefault: IC-7300, COM17 on Windows/WSL, 19200 baud, read-only.\nHistory: logs/rig-status-history.jsonl\nThe host forks dist/apps/rig-controld.js and runs cwrig monitor on the same endpoint.\n'
+    printf 'Usage: bash rig.sh [--simulate]\n       bash rig.sh --cw-trial <trial options; --help for details>\n       bash rig.sh --mode cw-trial --simulate [--demo E|TEST] (frozen IPC experiment)\nDefault: IC-7300, COM17 on Windows/WSL, 19200 baud, read-only.\nHistory: logs/rig-status-history.jsonl\n'
     exit 0 ;;
   *) printf 'Usage: bash rig.sh [--simulate]\n' >&2; exit 2 ;;
 esac
