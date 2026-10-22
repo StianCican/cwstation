@@ -4,6 +4,12 @@
 
 用户要求上传至StianCican账号。目标仓库为`https://github.com/StianCican/cwstation`，默认私有，沿现有main及完整历史，不做0.0发布或标签。当前推送状态以MEMORY顶部为准；本地提交不等于远端上传成功。
 
+首次上传已完成：源码提交`141255f`已推送，origin为`https://github.com/StianCican/cwstation.git`，main跟踪origin/main。335个文件及既有历史上传，77个文件包含此前未提交进展；仅额外去除旧专项末尾一空行，不改变产品逻辑。后续同步仍用原Git入口；本机可按单次命令复用Windows credential helper，不复制凭据：
+
+```bash
+bash scripts/git-local.sh -c credential.helper= -c 'credential.helper=!"/mnt/c/Program Files/GitHub CLI/gh.exe" auth git-credential' push
+```
+
 本机Windows GitHub CLI已登录对应账号，WSL gh未登录；Git推送使用Windows gh的credential helper，不读取/复制token，不改全局Git配置。项目继续用原`scripts/git-local.sh`及`.git-local`，普通clone得到标准Git仓库，不迁移本地元数据。
 
 上传前基线`.local-backups/20261023-github-upload/`含repository-before.bundle（完整9提交历史且bundle verify通过）、worktree-before.tar（335个源码/文档/示例文件）、dirty-before.patch及原config/index。扫描当前候选文件及320个历史唯一blob，未发现所检查的常见token/私钥/硬编码凭据模式；非完整秘密检测保证。源码边界检查无logs/data/dist/node_modules/本地备份，最大单文件不足0.2MB。产品验证沿用MEMORY已有受影响证据，不因上传重复跑设备/GUI/全仓测试。
