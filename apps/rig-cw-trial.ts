@@ -15,6 +15,7 @@ import {
   cwTrialContextEquals,
   evaluateCwTrialPreflight,
   CW_TRIAL_MESSAGES,
+  cwTrialIntentDigest,
   type CwTrialContext,
   type CwTrialMessage,
   type CwTrialPreflight,
@@ -22,10 +23,12 @@ import {
 import { civPlanHex, planCivCwMessage, planCivCwStop, type CivTransport } from "../packages/devices/src/index.js";
 // 直接从 serial.ts 引入独立命名的试验工厂，不扩大 packages/devices 公共出口。
 import { openCwTrialSerialTransport } from "../packages/devices/src/serial.js";
+import type { ReplyDispatchControl, ReplyDispatchLease } from "./reply-dispatch-control.js";
 
 export const CW_TRIAL_USAGE =
   "rig-controld --cw-trial --simulate [--message E|TEST] [--simulate-confirm E|TEST] [--simulate-ack ok|ng|none] [--record-dir <dir>]\n" +
-  "       rig-controld --cw-trial --port <COMx> --confirm-keying-off [--message E|TEST] [--record-dir <dir>] [--timeout-ms N]";
+  "       rig-controld --cw-trial --port <COMx> --confirm-keying-off [--message E|TEST] [--record-dir <dir>] [--timeout-ms N]\n" +
+  "       rig-controld --cw-trial --review-intent <id> --operator <name> --note <basis> [--record-dir <dir>] (TTY; no transport)";
 
 const DEFAULT_RECORD_DIR = "logs/cw-trial";
 const DEFAULT_TIMEOUT_MS = 2_000;
@@ -135,18 +138,68 @@ export interface CwTrialIo {
   close?(): void;
 }
 
+/**
+ * 进程内绑定：只用于 V00-03-B 的已校验回复提案。
+ * 绝不从 CLI 参数读取任意文本，也不向真实发送入口开放。
+ */
+export interface CwTrialReplyBinding {
+  readonly text: string;
+  readonly sessionId: string;
+  readonly turnId: string;
+  readonly revision: number;
+  /** 调用者保留提案有效性；每次异步步骤后、意图落盘后再次检查。 */
+  readonly isCurrent: () => boolean;
+}
+
 export interface CwTrialRunnerDeps {
   readonly io?: CwTrialIo;
+  readonly signal?: AbortSignal;
   /** 测试注入：用给定参数创建一个独占 transport。 */
   readonly createTransport?: (options: CwTrialCliOptions) => Promise<CivTransport>;
   /** 测试注入：打开指定记录目录；真实路径默认 CwTrialRecordStore.open。 */
   readonly openStore?: (directory: string) => Promise<CwTrialRecordStore>;
+  /** 仅接收链路在进程内传入；只允许模拟模式并要求 TTY 完整正文确认。 */
+  readonly replyProposal?: CwTrialReplyBinding;
+  /**
+   * V00-04-A：同一进程内的会话授权。只决定自动/人工与一次性 lease，
+   * 不接收设备、草稿或发送循环。缺省时保持原人工确认路径。
+   */
+  readonly replyDispatch?: ReplyDispatchControl;
+  /** Desktop-only simulated reply confirmation, requested after preflight.
+   * Must return the exact text typed by the operator; never valid for a real port. */
+  readonly confirmSimulatedReply?: (text: string) => Promise<string | null>;
 }
 
 class CwTrialInterrupted extends Error {}
+class CwTrialDispatchRevoked extends Error {}
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** 人工编辑草稿的有界次数；非法编辑也计入，避免无限提示。 */
+const MAX_REPLY_EDITS = 3;
+
+function validateCwText(text: string): string | null {
+  if (typeof text !== "string" || text.trim().length === 0) return "text must be a non-empty string";
+  if (/[a-z]/.test(text)) return "text must already be uppercase ASCII";
+  if (text.includes("^")) return "text must not request continuous keying";
+  try {
+    planCivCwMessage(text);
+  } catch (error) {
+    return `text is not a legal CW message: ${message(error)}`;
+  }
+  return null;
+}
+
+function validateReplyBinding(binding: CwTrialReplyBinding): string | null {
+  const invalidText = validateCwText(binding.text);
+  if (invalidText !== null) return invalidText;
+  if (typeof binding.sessionId !== "string" || binding.sessionId.length === 0) return "sessionId must be non-empty";
+  if (typeof binding.turnId !== "string" || binding.turnId.length === 0) return "turnId must be non-empty";
+  if (!Number.isInteger(binding.revision) || binding.revision < 1) return "revision must be a positive integer";
+  if (typeof binding.isCurrent !== "function") return "proposal validity check is required";
+  return null;
 }
 
 function defaultIo(): CwTrialIo {
@@ -206,6 +259,7 @@ function usageLine(): string {
  * 7 发送或停止未观察到应答。0仅表示命令流程完成，不证明物理完成/停止。
  */
 export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDeps = {}): Promise<number> {
+  if (argv.includes("--review-intent")) return runIntentReview(argv, deps);
   let options: CwTrialCliOptions;
   try {
     options = parseCwTrialArgs(argv);
@@ -225,8 +279,109 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
 
   const io = deps.io ?? defaultIo();
   const ownsIo = deps.io === undefined;
+  if (deps.confirmSimulatedReply !== undefined
+      && (!options.simulate || deps.replyProposal === undefined
+        || typeof deps.confirmSimulatedReply !== "function"
+        || deps.replyDispatch?.mode === "automatic")) {
+    io.write("cw-trial: desktop confirmation requires a manual simulated reply; no message was sent");
+    if (ownsIo) io.close?.();
+    return 2;
+  }
+  if (deps.replyDispatch !== undefined && deps.replyProposal === undefined) {
+    io.write("cw-trial: a reply dispatch control requires a reply proposal binding; no message was sent");
+    if (ownsIo) io.close?.();
+    return 2;
+  }
+  const binding = deps.replyProposal === undefined ? undefined : { ...deps.replyProposal };
+  let messageText: string = options.message;
+  let replyDetail = "";
+  let automaticLease: ReplyDispatchLease | undefined;
+  let automaticConsumed = false;
+  if (binding !== undefined) {
+    if (!options.simulate) {
+      io.write("cw-trial: a reply proposal binding is only permitted in simulation; no message was sent");
+      if (ownsIo) io.close?.();
+      return 2;
+    }
+    if (!io.isTTY && deps.confirmSimulatedReply === undefined && deps.replyDispatch?.mode !== "automatic") {
+      io.write("cw-trial: a reply proposal requires an interactive TTY; no message was sent");
+      if (ownsIo) io.close?.();
+      return 2;
+    }
+    if (options.simulateConfirm !== null) {
+      io.write("cw-trial: a reply proposal cannot use an automatic confirmation; no message was sent");
+      if (ownsIo) io.close?.();
+      return 2;
+    }
+    const invalid = validateReplyBinding(binding);
+    if (invalid !== null) {
+      io.write(`cw-trial: invalid reply proposal binding: ${invalid}; no message was sent`);
+      if (ownsIo) io.close?.();
+      return 2;
+    }
+    messageText = binding.text;
+    replyDetail = `; reply=${JSON.stringify({
+      text: binding.text,
+      sessionId: binding.sessionId,
+      turnId: binding.turnId,
+      revision: binding.revision,
+    })}`;
+    if (deps.replyDispatch !== undefined && deps.replyDispatch.mode === "automatic") {
+      const authorization = deps.replyDispatch.authorize({
+        text: binding.text,
+        sessionId: binding.sessionId,
+        turnId: binding.turnId,
+        revision: binding.revision,
+      }, binding.isCurrent);
+      if (!authorization.authorized) {
+        io.write(`cw-trial: automatic dispatch refused (${authorization.reason}); no message was sent`);
+        if (ownsIo) io.close?.();
+        return 3;
+      }
+      automaticLease = authorization.lease;
+      io.write(`cw-trial: automatic dispatch armed; confirmation prompt skipped (generation ${authorization.lease.generation})`);
+    }
+  }
+  const recordMessage = binding === undefined ? options.message : null;
   let store: CwTrialRecordStore | undefined;
+  let releaseRecords: (() => Promise<void>) | undefined;
   let session: CwTrialSession | undefined;
+  let stopped = false;
+  let acknowledged = false;
+  let stopRecordFailed = false;
+  const requestStop = async (): Promise<void> => {
+    if (stopped || !session?.view().messageAttempted) return;
+    stopped = true;
+    let intentDiagnostic: string | undefined;
+    let resultDiagnostic: string | undefined;
+    // A failed post-send record must not suppress the one best-effort stop.
+    try {
+      await store!.append({
+        event: "stop_intent",
+        message: recordMessage,
+        detail: `frame ${civPlanHex(planCivCwStop())}${replyDetail}`,
+      });
+    } catch (error) {
+      stopRecordFailed = true;
+      intentDiagnostic = `cw-trial: stop intent record failed: ${message(error)}`;
+    }
+    const stop = await session.sendStop();
+    acknowledged = acknowledged && stop.outcome === "ack_observed";
+    try {
+      await store!.append({
+        event: "stop_result",
+        message: recordMessage,
+        detail: `outcome=${stop.outcome}; ${stop.detail}${replyDetail}`,
+      });
+    } catch (error) {
+      stopRecordFailed = true;
+      resultDiagnostic = `cw-trial: stop result record failed: ${message(error)}`;
+    }
+    // Diagnostics may throw; attempt the stop and its record before printing.
+    if (intentDiagnostic !== undefined) io.write(intentDiagnostic);
+    io.write(`cw-trial: stop outcome=${stop.outcome}; ${stop.detail}`);
+    if (resultDiagnostic !== undefined) io.write(resultDiagnostic);
+  };
   let interruptError: CwTrialInterrupted | undefined;
   let rejectInterrupt: ((error: Error) => void) | undefined;
   const interrupted = new Promise<never>((_resolve, reject) => {
@@ -239,13 +394,32 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
   };
   const onSigint = (): void => interrupt("SIGINT");
   const onSigterm = (): void => interrupt("SIGTERM");
+  const onExternalAbort = (): void => interrupt("caller cancellation");
+  const onDispatchStop = (): void => interrupt("session stop");
   const checkInterrupted = (): void => {
     if (interruptError) throw interruptError;
     io.signal?.throwIfAborted();
+    deps.signal?.throwIfAborted();
+    deps.replyDispatch?.signal.throwIfAborted();
+    if (binding !== undefined && !binding.isCurrent()) {
+      throw new CwTrialInterrupted("reply proposal is no longer current");
+    }
+  };
+  const checkAutomatic = (stage: string): void => {
+    if (automaticLease === undefined) return;
+    const denial = deps.replyDispatch!.check(automaticLease, binding!.isCurrent);
+    if (denial !== null) {
+      throw new CwTrialDispatchRevoked(`automatic dispatch authorization lost (${denial}) after ${stage}`);
+    }
   };
   process.on("SIGINT", onSigint); process.on("SIGTERM", onSigterm);
+  deps.signal?.addEventListener("abort", onExternalAbort, { once: true });
+  if (deps.signal?.aborted) onExternalAbort();
+  deps.replyDispatch?.signal.addEventListener("abort", onDispatchStop, { once: true });
+  if (deps.replyDispatch?.signal.aborted) onDispatchStop();
 
   try {
+    checkInterrupted();
     if (!options.simulate) {
       if (!options.confirmKeyingOff) {
         io.write("cw-trial: refusing to send without --confirm-keying-off");
@@ -260,28 +434,33 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
     store = deps.openStore !== undefined
       ? await deps.openStore(options.recordDir)
       : await CwTrialRecordStore.open(options.recordDir);
+    releaseRecords = await store.acquireExclusive();
     checkInterrupted();
+    checkAutomatic("record open");
     if (await store.hasUnresolvedIntent()) {
       io.write(
         `cw-trial: blocked; ${options.recordDir} has an unresolved send intent. ` +
-          "Manual review is required and no automatic clear is provided.",
+          "Use --review-intent <id> --operator <name> --note <basis> for explicit TTY review; no automatic clear is provided.",
       );
       return 3;
     }
     checkInterrupted();
+    checkAutomatic("unresolved intent check");
 
     const transport = await (deps.createTransport ?? defaultCreateTransport)(options);
     session = new CwTrialSession({ transport, queryTimeoutMs: options.timeoutMs });
     checkInterrupted();
+    checkAutomatic("transport open");
 
     let context: CwTrialContext;
     try {
       context = await session.readContext();
-      checkInterrupted();
     } catch (error) {
       io.write(`cw-trial: preflight read failed; no message was sent: ${message(error)}`);
       return 1;
     }
+    checkInterrupted();
+    checkAutomatic("preflight read");
     const preflight = evaluateCwTrialPreflight(context);
     printContext(io, context, preflight);
     if (!preflight.ok) {
@@ -289,13 +468,65 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       return 4;
     }
 
-    const fingerprint = computeCwTrialContextFingerprint({
-      message: options.message,
+    let fingerprint = computeCwTrialContextFingerprint({
+      message: messageText,
       context,
       sessionInstanceId: session.sessionInstanceId,
     });
-    let typed: string;
-    if (options.simulate) {
+    let typed = "";
+    if (binding !== undefined) {
+      if (!io.isTTY && deps.confirmSimulatedReply === undefined && automaticLease === undefined) {
+        io.write("cw-trial: a reply proposal requires an interactive TTY; no message was sent");
+        return 2;
+      }
+      if (deps.confirmSimulatedReply !== undefined) {
+        typed = await Promise.race([deps.confirmSimulatedReply(messageText), interrupted]) ?? "";
+        checkInterrupted();
+      } else if (automaticLease === undefined) {
+        // 草稿只存在 runner 本地；AI 提案副本不会被改写，取消时草稿仍可见。
+        let edits = 0;
+        for (;;) {
+          typed = await Promise.race([io.prompt(
+            `Type ${JSON.stringify(messageText)} exactly to confirm ONE simulated CW send, `
+              + "EDIT <text> to change, anything else aborts: ",
+          ), interrupted]);
+          checkInterrupted();
+          if (typed === messageText) break;
+          if (!typed.startsWith("EDIT ")) {
+            io.write("cw-trial: confirmation declined; no message was sent");
+            return 3;
+          }
+          edits += 1;
+          if (edits > MAX_REPLY_EDITS) {
+            io.write("cw-trial: too many reply edits; no message was sent");
+            return 3;
+          }
+          const candidate = typed.slice("EDIT ".length);
+          const invalidEditedText = validateCwText(candidate);
+          if (invalidEditedText !== null) {
+            io.write(
+              `cw-trial: invalid edited reply text: ${invalidEditedText}; `
+                + `the draft stays ${JSON.stringify(messageText)}; re-enter EDIT <text> or type the final text`,
+            );
+            continue;
+          }
+          messageText = candidate;
+          fingerprint = computeCwTrialContextFingerprint({
+            message: messageText,
+            context,
+            sessionInstanceId: session.sessionInstanceId,
+          });
+          replyDetail = `; reply=${JSON.stringify({
+            text: messageText,
+            sessionId: binding.sessionId,
+            turnId: binding.turnId,
+            revision: binding.revision,
+            edited: true,
+          })}`;
+          io.write(`cw-trial: reply draft updated to ${JSON.stringify(messageText)}; type it exactly to confirm`);
+        }
+      }
+    } else if (options.simulate) {
       if (options.simulateConfirm === null) {
         io.write("cw-trial: simulation confirmation not provided; no message was sent");
         return 3;
@@ -307,7 +538,8 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       ), interrupted]);
     }
     checkInterrupted();
-    if (typed !== options.message) {
+    checkAutomatic("confirmation");
+    if (automaticLease === undefined && typed !== messageText) {
       io.write("cw-trial: confirmation declined; no message was sent");
       return 3;
     }
@@ -315,8 +547,9 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
     try {
       const reread = await session.readContext();
       checkInterrupted();
+      checkAutomatic("re-read");
       const rereadFingerprint = computeCwTrialContextFingerprint({
-        message: options.message,
+        message: messageText,
         context: reread,
         sessionInstanceId: session.sessionInstanceId,
       });
@@ -325,6 +558,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
         return 5;
       }
     } catch (error) {
+      if (error instanceof CwTrialDispatchRevoked) throw error;
       io.write(
         `cw-trial: re-read failed after confirmation; confirmation revoked; no message was sent: ${message(error)}`,
       );
@@ -334,40 +568,42 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
     // 写前持久化意图并 fsync；失败即不发送。
     await store.append({
       event: "intent",
-      message: options.message,
+      message: recordMessage,
       contextFingerprint: fingerprint,
-      detail: `frame ${civPlanHex(planCivCwMessage(options.message))}`,
+      detail: `frame ${civPlanHex(planCivCwMessage(messageText))}${replyDetail}`,
     });
     checkInterrupted();
+    checkAutomatic("intent flush");
 
-    const send = await session.sendMessage(options.message);
+    if (automaticLease !== undefined) {
+      io.write("cw-trial: automatic dispatch ready for one-time consumption");
+      checkInterrupted();
+      // 紧邻发送前的一次消费；check 同时复核模式、代次、精确身份与取消。
+      const denial = deps.replyDispatch!.consume(automaticLease, binding!.isCurrent);
+      if (denial !== null) {
+        io.write(
+          `cw-trial: automatic dispatch authorization lost (${denial}) immediately before send; no message was sent`,
+        );
+        return 3;
+      }
+      automaticConsumed = true;
+    }
+
+    const send = await session.sendMessage(messageText);
+    acknowledged = send.outcome === "ack_observed";
+    if (automaticConsumed) io.write("cw-trial: automatic dispatch consumed once; the same proposal cannot dispatch again");
     io.write(`cw-trial: send outcome=${send.outcome}; ${send.detail}`);
-    await store.append({
-      event: "send_result",
-      message: options.message,
-      contextFingerprint: fingerprint,
-      detail: `outcome=${send.outcome}; ${send.detail}`,
-    });
-
-    let stopped = false;
-    let acknowledged = send.outcome === "ack_observed";
-    const requestStop = async (): Promise<void> => {
-      if (stopped) return;
-      stopped = true;
-      await store!.append({
-        event: "stop_intent",
-        message: options.message,
-        detail: `frame ${civPlanHex(planCivCwStop())}`,
+    try {
+      await store.append({
+        event: "send_result",
+        message: recordMessage,
+        contextFingerprint: fingerprint,
+        detail: `outcome=${send.outcome}; ${send.detail}${replyDetail}`,
       });
-      const stop = await session!.sendStop();
-      acknowledged = acknowledged && stop.outcome === "ack_observed";
-      io.write(`cw-trial: stop outcome=${stop.outcome}; ${stop.detail}`);
-      await store!.append({
-        event: "stop_result",
-        message: options.message,
-        detail: `outcome=${stop.outcome}; ${stop.detail}`,
-      });
-    };
+    } catch (error) {
+      io.write(`cw-trial: send result record failed: ${message(error)}`);
+      throw error;
+    }
 
     if (options.simulate) {
       await requestStop();
@@ -399,12 +635,23 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       }
       if (!stopped) await requestStop();
     }
-    return acknowledged ? 0 : 7;
+    return stopRecordFailed ? 1 : acknowledged ? 0 : 7;
   } catch (error) {
+    try {
+      await requestStop();
+    } catch (stopError) {
+      io.write(`cw-trial: stop failed: ${message(stopError)}`);
+    }
     io.write(`cw-trial: failed: ${message(error)}`);
-    return 1;
+    if (binding !== undefined) {
+      io.write(`cw-trial: reply draft retained: ${JSON.stringify(messageText)}`);
+    }
+    return error instanceof CwTrialDispatchRevoked ? 3 : 1;
   } finally {
     process.off("SIGINT", onSigint); process.off("SIGTERM", onSigterm);
+    deps.signal?.removeEventListener("abort", onExternalAbort);
+    deps.replyDispatch?.signal.removeEventListener("abort", onDispatchStop);
+    if (automaticLease !== undefined && !automaticConsumed) deps.replyDispatch?.revoke();
     let cleanupExit: number | undefined;
     if (session !== undefined) {
       try {
@@ -425,8 +672,60 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
         }
       }
     }
+    try { await releaseRecords?.(); }
+    catch (error) { cleanupExit ??= 1; io.write(`cw-trial: record lock release failed: ${message(error)}`); }
     if (ownsIo) io.close?.();
     // Cleanup evidence takes precedence over an earlier successful command flow.
     if (cleanupExit !== undefined) return cleanupExit;
   }
+}
+
+async function runIntentReview(argv: readonly string[], deps: CwTrialRunnerDeps): Promise<number> {
+  const io = deps.io ?? defaultIo();
+  let release: (() => Promise<void>) | undefined;
+  const controller = new AbortController();
+  const abort = (): void => controller.abort();
+  const check = (): void => { controller.signal.throwIfAborted(); deps.signal?.throwIfAborted(); io.signal?.throwIfAborted(); };
+  process.on("SIGINT", abort); process.on("SIGTERM", abort);
+  deps.signal?.addEventListener("abort", abort, { once: true });
+  io.signal?.addEventListener("abort", abort, { once: true });
+  let exit = 1;
+  try {
+    const values = new Map<string, string>();
+    for (let index = 0; index < argv.length; index += 2) {
+      const flag = argv[index]!, value = argv[index + 1];
+      if (!["--review-intent", "--operator", "--note", "--record-dir"].includes(flag)
+          || values.has(flag) || value === undefined || value.startsWith("--") || !value.trim()) throw new Error("invalid review arguments; review cannot be combined with sending");
+      values.set(flag, value);
+    }
+    const id = values.get("--review-intent"), operator = values.get("--operator"), note = values.get("--note");
+    if (!id || !operator || !note || !io.isTTY || deps.replyProposal || deps.replyDispatch || deps.confirmSimulatedReply) {
+      throw new Error("review requires --review-intent, --operator, --note and an interactive TTY, without reply dispatch");
+    }
+    check();
+    const store = await (deps.openStore ?? CwTrialRecordStore.open)(values.get("--record-dir") ?? DEFAULT_RECORD_DIR);
+    release = await store.acquireExclusive(); check();
+    const target = await store.intentForReview(id); check();
+    const digest = cwTrialIntentDigest(target);
+    io.write(`Review target (old completion/stop remain UNKNOWN): ${JSON.stringify(target)}`);
+    io.write(`operator=${JSON.stringify(operator)} note=${JSON.stringify(note)} digest=${digest}`);
+    const token = `REVIEW ${id} ${digest}`;
+    const interrupted = new Promise<never>((_, reject) => controller.signal.addEventListener("abort", () => reject(new Error("review interrupted")), { once: true }));
+    check();
+    const answer = await Promise.race([io.prompt(`Confirm old processes exited and current device isolation/state was personally checked. Type ${JSON.stringify(token)} to permit FUTURE new proposals only: `), interrupted]);
+    check();
+    if (answer !== token) { io.write("cw-trial: review declined; records unchanged"); exit = 3; }
+    else {
+      await store.reviewIntent({ intentId: id, intentDigest: digest, operator, note }, controller.signal);
+      io.write("cw-trial: review appended; old outcome remains UNKNOWN; no transport opened or message sent");
+      exit = 0;
+    }
+  } catch (error) { io.write(`cw-trial: review failed: ${message(error)}; inspect records before retrying if a write was attempted`); }
+  finally {
+    process.off("SIGINT", abort); process.off("SIGTERM", abort);
+    deps.signal?.removeEventListener("abort", abort); io.signal?.removeEventListener("abort", abort);
+    try { await release?.(); } catch (error) { exit = 1; io.write(`cw-trial: record lock release failed: ${message(error)}`); }
+    if (deps.io === undefined) io.close?.();
+  }
+  return exit;
 }

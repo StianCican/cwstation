@@ -1,6 +1,12 @@
 # CW Station
 
-独立的业余无线电 CW 台站自动化项目。目标是稳定、可恢复、便于操作，并能持续增加设备、赛事和自动化功能。
+独立的AI CW自动发射软件项目。目标是让AI参与CW内容与操作提案，由确定性的控制逻辑校验并执行，逐步形成稳定、可恢复、便于操作的自动化软件。
+
+当前0.0目标草案、冻结规则、里程碑和唯一当前任务见[版本交付路线](docs/ROADMAP.md)。自动化边界待用户确认；确认后直至0.0完成，范围外需求只留作后续版本候选。
+
+接续开发先读 `AGENTS.md` 的单主轴约束和ADR-020。下方保留多种历史入口的使用说明，不代表多条开发路线同时推进；设备执行沿用既有单次CW试验链，AI回复已接入人工确认后的模拟发送，真实AI回复发射尚未接通，当前状态见MEMORY顶部。重复链路原因见 `docs/reviews/REV-020-重复链路根因与项目规范.md`。
+
+已做/未做及证据范围统一查看[MEMORY当前事实清单](MEMORY.md)，提下一步前先核对；当前用户未连接电台不影响已有历史实机验收结论。
 
 当前已完成离线控制核心、IC-7300 只读监视链路及受控 CW 短报文试验：
 
@@ -12,7 +18,7 @@
 
 ## 当前主链路：单次设备试验
 
-当前开发集中优化既有 `CwTrialSession`：一个设备会话、一次人工确认、一次固定短报文，复用相同的模拟/真实CI-V代码；不需要另启动daemon、SQLite或IPC设备服务。默认 `bash rig.sh` 仍是只读监视。
+当前已实现的设备执行基础为既有 `CwTrialSession`：一个设备会话、一次人工确认、一次固定短报文，复用相同的模拟/真实CI-V代码；不需要另启动daemon、SQLite或IPC设备服务。它尚非AI自动发报成品，新增工作以0.0冻结范围为准。默认 `bash rig.sh` 仍是只读监视。
 
 ```bash
 npm run build
@@ -23,7 +29,124 @@ bash rig.sh --cw-trial --simulate --simulate-confirm E --record-dir logs/cw-tria
 
 流程：八查询预检 → 人工确认（模拟为显式simulate-confirm）→ 重读核对 → intent刷盘 → 一次E/TEST → 停止请求 → 退出释放。`scripts/cw-trial.sh`仅作为此入口的兼容转发。真实设备仍需现场单独授权、显式端口与keying-off确认及交互TTY，本次整顿不执行真实试验。
 
-退出0仅表示命令流程观察到应答且清理完成，不能证明报文完成或物理停发；退出6表示关闭未确认，7表示发送/停止未观察到应答，其他非零值表示拒绝或失败。任何真实intent仍保持未解决，不得换目录或删除记录绕过。现阶段是单次受控试验，不是自动连续操作系统。
+退出0仅表示命令流程观察到应答且清理完成，不能证明报文完成或物理停发；退出6表示关闭未确认，7表示发送/停止未观察到应答，其他非零值表示拒绝或失败。intent默认阻断，不得换目录或删除记录绕过。现阶段是单次受控试验，不是自动连续操作系统。
+
+### 显式人工核查历史 intent
+
+用户核对原进程全部退出、当前设备状态与隔离依据后，可沿原入口执行以下动作（替换占位值，必须交互TTY）：
+
+```bash
+bash rig.sh --cw-trial --review-intent "<intent-id>" --operator "<name>" --note "<actual-review-basis>" --record-dir "<original-record-dir>"
+```
+
+程序展示目标原记录及SHA256摘要，要求完整输入`REVIEW <intent-id> <digest>`。它只在原JSONL追加v2 `intent_review`记录并fsync，原v1行不变、旧报文完成/停止仍UNKNOWN；不打开transport、不重试旧报文、不同时发送。核查只解除该条intent对后续新提案的阻断，其他/新intent仍阻断，后续发送仍经过原预检与确认。不得代填未经核实的设备状态。旧版不认识v2时保持阻断，不能让旧版与新版同时运行。
+
+发送与核查在原目录全程共用`.cw-trial.lock`目录锁。遇到锁占用应先退出竞争任务；崩溃遗留锁不自动抢占。人工恢复前必须核查全部旧进程已退出、备份原账本并检查完整性；尤其核查写盘结果UNKNOWN时，不能盲删锁重试。确认无活跃持有者且核查行及持久化结果已人工厘清后，才可人工移除该空锁目录；不删除/改写JSONL，不以PID或经过时间自动判定安全。文件损坏或版本不支持时先保留现场，不通过移除锁解除账本阻断。本功能Linux离线验证通过，Windows文件系统/串口现场尚未验证。
+
+发送前intent写盘失败不发送；发送尝试后的结果记录或停止记录写盘失败，仍通过同一会话尽力请求一次停止并关闭，不重复发送/停止，也不解除intent。退出码优先级为关闭未确认6、记录故障1、无应答7；记录故障即使伴随无应答也不返回0。此处仅处理记录操作已返回失败的情况；会话已故障关闭时不保证停止帧能写出，也不保证文件系统永久挂起时的停止时延。P2-017C已完成双平台离线专项、DSH审议修正复核及Codex限定验收，未做本轮实机验收。
+
+## 接收 CW 解码文本（V00-02-D，文件/PCM 或 FFmpeg 实时音频）
+
+当前生产调用链为 `cwrig receive → apps/rig-receive.ts → packages/receive →（实时音频时一个 FFmpeg 采集子进程）→ 一个 multimon-ng 子进程`。用户只操作本项目 CLI；解码器在后台以固定参数 `-q -c -a MORSE_CW -t raw -` 运行，不启动/关闭完整 fldigi GUI，也不暴露任意解码器参数、网络服务或设备控制。旧的 fldigi XML-RPC 客户端源码与历史证据保留但已冻结，`--endpoint`/`--once`/`--interval-ms` 会以退出码 2 明确拒绝。
+
+输入两种模式严格互斥，且必须显式选择一种：
+
+- `--pcm-s16le <file|->`：读取 **22050 Hz、mono、signed-16 little-endian PCM** 字节流；不支持 WAV 头、其他采样率。`-` 表示 stdin。本程序不加 WAV 解析器或音频服务。
+- `--ffmpeg <executable> --audio-backend <pulse|dshow> --audio-device <name>`：启动一个 FFmpeg 采集子进程，把指定设备转成同一 PCM 格式后送入同一个解码会话。`pulse` 只用于 Linux，`dshow` 只用于 Windows；设备名必须显式给出，不采集默认麦克风。dshow 设备以单个 `audio=<name>` argv 传入，不做 shell 拼接。
+
+实时模式固定使用 `-hide_banner -loglevel error -nostdin`、`-f pulse|dshow -i <device>`、无视频、`-ac 1 -ar 22050 -c:a pcm_s16le -f s16le pipe:1`。不接受任意 FFmpeg 参数、shell 命令或网络输入，不保存原始音频文件。
+
+```bash
+npm run build
+node dist/apps/cwrig.js receive --decoder /path/to/multimon-ng --pcm-s16le capture.s16le
+ffmpeg -i sample.wav -f s16le -acodec pcm_s16le -ac 1 -ar 22050 capture.s16le
+node dist/apps/cwrig.js receive --decoder /path/to/multimon-ng --pcm-s16le -
+node dist/apps/cwrig.js receive --decoder /path/to/multimon-ng \
+  --ffmpeg /path/to/ffmpeg --audio-backend pulse --audio-device <source-name>
+```
+
+运行预算默认 60000 ms（`--timeout-ms` 1..3600000，包含采集启动、PCM 传输和解码）；触发后另有有界清理宽限。PCM 模式沿用原语义：正常读到输入 EOF、有实际完整采样且没有残片时才补 0.5 s 零值静音，然后关闭引擎 stdin；空输入、取消或失败不补静音。输入按字节流校验偶数长度，跨块奇数长度会拼齐，最后仍剩半个采样则明确失败；输入不做无界缓存，实时 PCM 按流背压传递。
+
+实时采集进程自然退出（包括退出码 0）是不预期失败 `capture_failed`，不会伪装成正常完成；FFmpeg 缺失是单独的 `capture_missing`。采集失败会取消解码器；解码失败、回调失败、超时或外部取消会停止采集器。任一子进程按 500 ms SIGTERM 宽限、必要时 500 ms SIGKILL 清理，不重试；预取消不启动任何进程。采集 stderr 持续排空但最多保留 64 KiB，不回显原文。
+
+输出为 JSONL。状态行含 `type:"status"`、`state`、`source:"multimon-ng"`、`readOnly:true`、`sessionId` 等；实时模式另含 `audioBackend`、`audioDevice`、`audioSampleRateHz`、`audioChannels`、`audioSampleFormat`，完成/停止/失败时含 `pcmBytes` 与 `captureStderrRetainedBytes`。每个非空文本块为 `{"ok":true,"type":"chunk","source":"multimon-ng","readOnly":true,"sessionId":...,"seq":...,"text":...,"receivedAt":...}`。`seq` 只对本次会话交付的非空文本递增，`pcmBytes` 只表示交给解码器的字节数，二者都不是空口准确率或完整 QSO 证明；stdout 数据按块流式交付，不等待换行，单块也不保证是完整字符/词/报文。无文本时以 `state:"completed"`、`decoded:false`、`empty:true` 结束，不虚报解码成功。
+
+单会话仍只有一个解码引擎，不重启、不重试；实时模式另外只有本次会话的一个采集进程。stdout 总字节上限默认 1 MiB，stderr 持续读取但最多保留 64 KiB 且不回显原文。输入错误、引擎/FFmpeg 缺失、非零退出、采集提前退出、超时或输出超限都以非零退出并给出明确 `code`；已交付的文本保留，但不表示整个输入完成。`SIGINT`/`SIGTERM`/外部取消后不再交付迟到文本，停止输入并清理两个子进程；只有解码器与采集器都确认清理的主动取消才退出 0，任一清理未确认即退出 1。退出码：正常完成 0、确认清理的主动取消 0、运行/清理失败 1、参数错误 2。
+
+输出去除引擎 CR/LF 帧边界，保留单独到达的词间空格；只有实际非空白内容才报告 `decoded:true`。
+
+### 收报回复提案（V00-03-A，单轮，不自动发射）
+
+`receive` 可选接入 assistant 的单轮回复提案。三个回复参数必须同时给出；不给出时完全保持上面的原收报语义，不会默认联网：
+
+```bash
+node dist/apps/cwrig.js receive --decoder <multimon-ng> --pcm-s16le capture.s16le \
+  --reply-config <assistant-config.json> --own-call B1AA --peer-call B2BB \
+  [--reply-idle-ms 2500]
+```
+
+- 配置沿用 `cwai` 的 version1 文件；联网前严格加载校验，不打印凭据。`--own-call`/`--peer-call` 为 2..12 位大写 ASCII 字母/数字/斜线，各至少一个字母和一个数字，且不能相同。
+- 同一 `sessionId` 最多一个 turn、最多一次模型调用。收到非空白字符后重新计时，默认 2500 ms（1000..10000）无新非空白字符即收口；正常 PCM EOF 立即收口。空格保留在组报文本中，缓冲上限 1024 字符，超限明确失败且不调用模型。
+- 模型在途时出现新非空白文本会撤销该 turn、中止请求并抑制迟到结果，不重试；提案发布后出现新非空白文本会发出 `type:"invalidated"`，使当前提案失效，不发起第二轮。
+- 事件为 JSONL：`type:"utterance"` 含 `receivedText`/`boundary`；`type:"reply"` 含 `provider`/`model`/`validated`/`action`/`text`/`reason`。所有事件都带 `sessionId`、`turnId`、`revision`、`advisoryOnly:true`，不携带原始模型文本、凭据或执行帧。
+- 模型必须返回严格 JSON `{"action":"reply"|"no_reply","text":string,"reason":string}`，不得有额外字段、代码围栏或说明文字。回复正文必须已是 uppercase ASCII、非空、不超过 30 字节、禁止 `^`，并复用 IC-7300 Command 17 的纯校验器；不截断、不替换、不规范化。非法输出以 `validated:false` 明确失败。
+- 官方 `https://api.deepseek.com` 的 `deepseek-flash`/`deepseek-v4-pro` 回复请求显式使用非思考与 JSON 输出模式；其他端点及原状态解释保持默认请求行为，配置仍为 version1。JSON 模式不替代本地严格校验。回复事件可带 `diagnostics`：结束原因白名单、正文/思考字符数和固定校验失败分类；不包含原始模型正文或思考内容。明确未完成的响应即使局部 JSON 合法也会拒绝。
+- `disabled` 明确返回 `no_reply` 且不联网；`mock` 在本地确定性生成合法短回复，输出 `provider:"mock"`，不代表真实模型。所有提案都只是显示内容，不能授权发射；本入口不打开设备 transport。
+- 单轮提案不是完整自动通联，也不证明空口抄收准确率。真实 DeepSeek 服务已完成一次修正后限定验收：既有样本→同一解码/回复链→真实模型→合法提案，约1.9秒；首次格式失败与修正证据均保留。无密钥产品配置可用 `data/assistant.deepseek.json`；运行时仍需提供其指定的环境变量，验收临时授权不构成自动读取 DSH 凭据的产品功能。详见[回复提案证据](docs/evidence/V00-03-A-收报回复提案.md)。
+
+### 回复衔接模拟发送（V00-03-B，仅 PCM 文件 + 交互 TTY）
+
+在 03-A 的单轮回复之外，可显式要求把一条已校验的 `action:"reply"` 提案交给既有单次 CW 试验链，但**只使用模拟 transport**：
+
+```bash
+node dist/apps/cwrig.js receive --decoder <multimon-ng> --pcm-s16le capture.s16le \
+  --reply-config <assistant-config.json> --own-call B1AA --peer-call B2BB \
+  --reply-trial-simulate --reply-trial-record-dir logs/cw-trial
+```
+
+- 两个 `--reply-trial-*` 必须同时给出，且必须同时给出三个回复参数；只接受 `--pcm-s16le <file>`，拒绝 stdin（`-`）和实时音频。没有自动确认参数，必须由交互 TTY 完整键入最终正文本身；新增编辑方式及其验收状态见下方03-D。无 TTY、`no_reply`、失败/取消或提案未发布都零派发。
+- 实际执行复用 `apps/rig-cw-trial.ts` 的 `runCwTrial`/`CwTrialSession`/模拟 transport，不复制预检、确认后重读、intent fsync、一次发送、停止或关闭循环；仍为 16 条预检查询、一次 Command 17 正文和一次停止。进入该模式的完成状态行标记 `readOnly:false`，表示本次会话不再是纯只读收报；`replyTrial.performed` 只表示已进入 `runCwTrial`，是否实际写入正文看 `exitCode` 与记录，不能用 `performed:true` 单独证明已派发。
+- 提案只在进程内绑定：正文再次经过大写/字符/长度校验；记录继续使用既有 schema 的 `message:null`，在 `detail` 保存精确正文、`sessionId`、`turnId`、`revision` 和既有帧信息。不改记录格式、不删记录；同目录未解决 intent 仍阻断重跑。
+- 提案绑定保留当前有效性检查；确认后重读、意图落盘后均再次检查。收报入口取消会中止等待中的确认，不能在取消后补输入而恢复派发。
+- 真实入口与既有 E/TEST 试验限制不变；本路径不向真实入口开放任意文本，也不打开串口或调用真实模型。退出码沿用 `runCwTrial`（0 成功、2 用法/无 TTY、3 未确认/拒绝、4 预检拒绝、5 上下文变化、6 关闭未确认、7 发送/停止未观察到应答）。
+
+本切片最终验收：受影响专项49/49、build通过；编译CLI+既有真实multimon/PCM解出CQ TEST，经本地mock回复及PTY完整正文确认，将B1AA DE B2BB K交给既有模拟发送/停止/关闭，exit0，记录完整。未调用真实模型或电台，不代表真实发射或完整QSO。见[03-B证据](docs/evidence/V00-03-B-回复衔接模拟发送.md)。
+
+### AI 连续上下文与通联时延（V00-03-C，只提案，不发送）
+
+同一 `receive` 可显式开启连续 AI 模式。它仍走原来的 `apps/rig-receive.ts → packages/assistant/src/reply.ts` 会话和唯一 `chat.requestChatCompletion` 传输；只是会话不再在第一轮后关闭：
+
+```bash
+node dist/apps/cwrig.js receive --decoder <multimon-ng> --pcm-s16le capture.s16le \
+  --reply-config <assistant-config.json> --own-call B1AA --peer-call B2BB \
+  --reply-continuous [--reply-wpm 20] [--reply-budget-ms 5000]
+```
+
+- 模型看到的是同一会话内的历史：真实 `received` 轮次与明确标注 `proposal NOT SENT` 的旧提案；旧提案永远不被当作已发送，也不含执行帧或批准。模型每轮自主返回严格 JSON `{action:"reply"|"wait"|"end",text,reason}`：`reply` 正文仍走原来的 30 字节/大写/字符/`^` 校验；`wait`/`end` 正文必须为空。`wait` 不会自动重试同一收报文本；`end` 后不再请求。
+- 新非空白收报会中止在途请求、把待收文本合并到下一轮，并在下一 idle 只用一次新请求；被中止或晚到的结果不会发布。已经发布的旧提案在新输入后标记为 invalidated，但仍明确不是已发送。
+- 硬上限：至多 12 次收口尝试（含在途撤销）、渲染上下文至多 12000 字符；预留有界回复空间，可能提前停止，到限输出 `type:"ended"`，不静默删除历史。正常 PCM EOF 以 `reason:"eof"` 结束；采集失败/取消保持 canceled，不伪装成正常收口。
+- `--reply-wpm` 只允许 5..60（默认 20），是声明值而不是对实际码速的测量；发报时长按现有 `packages/signal` 的 `encodeCwText`/`buildTimeline` 估算，合法但不在该编码表内的字符显示为不可估，不改变提案合法性。`--reply-budget-ms` 100..10000（默认 5000）从本轮 boundary 起算，超预算会取消并抑制迟到结果；既有 `--reply-idle-ms` 仍为 1000..10000（默认 2500）。
+- 事件仍为 JSONL：连续 `type:"reply"` 增加 `continuous:true`、`turnIndex` 和 `timing`（`idleMs`/`modelMs`/`totalMs`/`budgetMs`/`wpm`/`estimatedDurationMs`），时间用单调时钟；`type:"ended"` 给出 `reason`、`turns` 和保留的 `historyChars`。完成状态行增加 `replyTurns`、`replyEndReason` 等字段。
+- `turnIndex` 是收口尝试编号，撤销后合并文本可保留重复前缀快照。`ended.receivedText` 是尚未处理的缓冲，正常结束可为空；完整报文见前序 `reply.receivedText`。
+- 普通连续模式与 03-B 的 `--reply-trial-simulate` 仍互斥；03-D仅为显式prepared模式增加正常文件EOF后一条模拟发送接入，见下节。没有多轮发送路径，不自动清 intent、不重复发送、不打开设备。不是完整 QSO 或真实发射。
+
+本切片最终验收见[V00-03-C证据](docs/evidence/V00-03-C-AI连续上下文与时延.md)；测试使用本地脚本化 HTTP 和既有解码夹具，不调用真实模型、凭据或电台。
+
+最终回复专项32/32、原发送专项28/28、build和编译CLI两轮接通通过；最终CLI使用既有真实multimon/PCM及本机脚本化HTTP。示例正文声明20WPM预计8.22秒。idle只是文本收口启发式，不能证明空口已空闲；真实多轮AI质量、实际码速识别、收发切换及连续发射仍未验。
+
+实时音频既有验收（V00-02-D，沿用）：实时音频专项16/16、旧CLI5/5、build通过；Linux/WSLg真实FFmpeg回放monitor进入编译CLI，完整解出CQ TEST、主动停止exit0。测试播放器首次截断的失败/包络诊断已保留，补播放尾静音后通过，产品参数未调。PCM文件/stdin沿用C证据。Windows原生、物理麦克风、电台、噪声及长时未验。详见[实施证据](docs/evidence/V00-02-D-实时音频输入.md)。
+
+### AI预备回复与人工编辑（V00-03-D）
+
+03-D整句预测曾作为机制实验限定验收，真实适用性未验；其AI候选语义已由03-E替换，历史边界见[03-D证据](docs/evidence/V00-03-D-预备回复与人工编辑.md)。03-E已在同一prepared入口接入严格CQ本地快速回复，非命中仍走原AI，并复用既有EDIT与一次模拟发送runner。定向专项38/38、build通过；不代表真实命中率或整体空口提速。规则、限制和验证记录见[03-E证据](docs/evidence/V00-03-E-CQ快速回复模板.md)。
+
+仅PCM文件加原`--reply-trial-simulate --reply-trial-record-dir <原记录目录>`及交互TTY时，可把正常EOF的最后一条当前有效reply交给同一runner模拟发送一次；前面各轮只是NOT SENT提案，end/超限/取消不发送。不会为多轮发送清除intent或更换目录。真实E/TEST白名单不变。
+
+模拟回复确认可输入`EDIT <大写CW正文>`修改当前草稿，再完整键入展示的最终正文确认。正文仍不得超过30字节，不允许`^`；非法编辑不会发送。AI不覆盖人工草稿，失效/取消会撤销派发资格，记录与设备帧使用最终确认正文；这不是已经发送内容的撤回功能。CLI现有入口先接通，GUI尚未实现。
+
+会话默认人工；在上述PCM文件、交互TTY及模拟发送参数组合中追加`--reply-auto`，可让最后一条合法本地CQ或AI回复经同一预检、重读、intent落盘自动模拟发送一次，跳过完整键入确认。`no_reply`、无效/过期提案不发送，原目录未决intent仍阻断，不支持stdin/实时输入或真实自动发射。JSONL标注`dispatch`、`scope: simulator`和控制代次。嵌入端复用同一`ReplyDispatchControl`：编辑切回人工，停止终止本会话并取消原等待；自动派发开始后不能抢改正文。CLI/GUI状态契约见[04-A证据](docs/evidence/V00-04-A-GUI切片.md)。
+
+桌面演示壳已可构建：`npm run build && npm run gui:build && npm run gui`。它显示演示收报、提案和会话授权状态，操作仍通过同一`ReplyDispatchControl`；当前不接真实receive、模型、电台或发送，Electron/React/Vite尚未做安装包和跨平台验收。
 
 ## 保留的 Fake IPC 实验
 
@@ -318,7 +441,7 @@ npm run cwwave -- verify --task examples/signal/demo.task.json \
 - Windows 备份先独占创建输出目录，再链接已验证快照，manifest 最后发布；进程中途退出可能留下不完整包，`inspect` 会拒绝。已有目录不覆盖；Linux 保留目录原子重命名发布。两平台恢复均到新路径。
 - 本机 Windows 源码模式需要 Windows 自己安装的 tsx/esbuild 依赖；不能混用 WSL 的原生依赖。本轮 Windows 验证使用编译产物，控制核心双平台不意味着 Julia 已在 Linux 验证。
 
-- 仅 `FakeKeyer`，未接触真实电台，也未做真机验证。
+- daemon常规发射控制仍仅使用Fake；真实只读与独立受控试验的历史验证范围见本文开头，未证明实际报文完成或射频停止。
 - 核查解除仅适用于 Fake 阶段：只能处理启动恢复时已存在的 `unknown`；本次启动后新增的 `unknown` 必须停机重启。数据库不可写等存储故障会闩锁解除路径，需人工排查，不能靠重试或删记录绕过。
 - 仅支持 CW 单一模式与单一频点；`dev.state` 是测试钩子，默认关闭。
 - 优雅关闭时无法在有限时间内确认停止的在途发射会记为 `unknown`，不会记为 `completed`。

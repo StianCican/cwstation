@@ -1,6 +1,218 @@
 # CW Station 项目记忆
 
-更新日期：2026-10-20。
+更新日期：2026-10-23。
+
+## GitHub 同步任务（2026-10-23）
+
+- 用户要求上传至StianCican账号，采用`StianCican/cwstation`私有仓库，沿本地main和原历史；本轮先提交源码/文档后推送，尚未核对远端，当前不能标为上传完成。产品能力及未验证范围仍见下方实时收报一轮模拟记录，本次不扩大产品功能或发布0.0。
+- 上传保护及文件/历史凭据模式检查见docs/GIT.md；基线`.local-backups/20261023-github-upload/`保存原历史bundle、工作树tar、dirty和config/index。运行账本/数据/凭据/依赖/产物/本地备份不上传，正式旧intent未改。
+
+## 当前事实与唯一任务（2026-10-23，实时收报一轮模拟后恢复）
+
+- 本轮限定交付：实时有效提案可沿原GuiSimulation/runCwTrial人工编辑确认，或显式automatic按原lease一次派发；runReceive原音频分支提供进程内pause/resume，确认采集/解码清理后才调用runner，保留同一个continuous ReplySession再恢复采集。stop不恢复；清理未确认零runner、零resume；新文本/编辑/模式变化撤销绑定。无新IPC/依赖/服务/记录格式/发送器。仅模拟，无真实发射。
+- 验证：受影响GUI/音频/新闭环43/43；补暂停停止/超时/清理失败及最终resume防护后新专项10/10；build、gui:typecheck、gui:build通过。专项覆盖人工/自动沿原runner成功、暂停ack前零启动、编辑/新电文/stop零派发、总时间预算不重置、同ReplySession恢复后turn继续、失败不重试。没有重跑设备/付费模型或全仓测试。
+- 实窗限定证据：隔离fixture同一编译Electron→真实FFmpeg/RDPSink.monitor/真实multimon→mock提案，手改B1AA DE B2BB TNX K；暂停清理PID后完整正文确认，原runner exit0/原五事件/恢复新PID，再播放得到turn-2，人工草稿保留。首脚本最后DOM断言早于250ms刷新而exit1，failure.json明确核心已turn-2/idle，不能称脚本全程exit0；只补按钮刷新/停止清理，tail-result.json对应exit0，无第二次模拟，fixture五行原样保留。confirming/resumed JPEG已逐张核对。文件选择仍临时dialog返回替代，不计原生选中通过。
+- 限制与当前任务：一轮模拟→恢复接收已限定交付，本轮收口；同一账本后续新发送仍被未决intent阻断，不自动解除/换目录、不宣称连续自动通联。自动分支仅专项/代码核对，本轮实窗走人工分支。Windows/真实电台音频/物理收发隔离/真实发送完成及真实模型GUI未验，0.0未完成；下一缺口是设备现场收发路径，尚无新实施任务。最长一小时实际经过时间含暂停、12轮回复上限沿用。
+- 审议/保护：`.local-backups/20261023-live-roundtrip/`含source-before.tar、dirty-before.patch、dist-before.tar、非凭据profile、脚本/截图/fixture/用户现场。DSH设计exit0，清理/单任务/预算意见采纳；其重复锁/先写回复账本/进程归属假设经原代码证据不采纳。代码交叉审议75秒exit124、无最终报告，不计独立通过；Codex已复核差异/专项/实窗/限制。正式账本SHA256保持d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac，无核查解除或发送写入。普通GUI恢复用户草稿与呼号，最终重开最新构建，未自动收音。
+
+下方“实时模式禁止所有模拟/实时轮次尚未接派发”属于上一增量，由本次用户明确批准的一轮模拟接入替代，其历史收听证据有效。
+
+## 当前事实与唯一任务（2026-10-23，GUI实时收听限定交付）
+
+- 已实现/已验证：GUI沿原startReceive→runReceive增加PCM/实时音频选择，显式FFmpeg、pulse/dshow后端和设备名称；实时模式进入既有continuous ReplySession，无新IPC/依赖/服务/协议/记录格式或发送循环。PCM默认兼容。实时模式的人工/自动模拟均由界面及adapter/bridge禁止；停止只取消，不触发发送。
+- 本轮实际证据：GUI受影响专项20/20，build、gui:typecheck、gui:build通过；同一编译Electron→FFmpeg采集RDPSink.monitor→真实multimon→mock建议，两次电脑播放既有clean.wav均解出CQ TEST并生成新turn，首个建议后仍running；手改MANUAL DRAFT KEEP经历第二轮/轮询仍保留，发送禁用。点击停止后FFmpeg/解码器PID均消失，simulation保持idle、mode人工。无麦克风、电台、付费模型或真实发送。
+- UI修正/限定：实时设置变长，停止按钮改为底部固定；980×733中文、760×560英文实际窗口无横溢出且停止按钮无需滚动可见，JPEG逐张核对。音频运行证据先于此纯CSS修正，之后只重建/验证布局，未重复收音。原生文件返回使用仅测试进程临时dialog替代，不计原生选择成功；普通GUI已重新打开最新构建并恢复用户原空草稿/呼号/中文，未自行启动收音。
+- 剩余限制：显式输入设备名，无设备枚举；沿原核心最长一小时采集预算及12轮连续回复上限，非无限会话；Windows dshow、物理麦克风/电台音频和真实模型GUI尚未验收。整体0.0/实时自动收发/连续QSO仍未完成。后续唯一产品缺口是实时接收轮次与既有派发链的衔接（须先明确轮次结束/收发隔离及人工编辑边界），本轮未实施，不将stop或采集EOF视为发报许可。
+- 保护与审议：`.local-backups/20261023-001943-gui-audio/`含GUI/文档原副本、dirty-before.patch、dist-before.tar、受影响测试原件、脚本/result.json/截图及用户现场恢复证据。DSH已读六文件，但60秒及整理30秒均exit124，无最终结论，不计独立审议通过；Codex逐项复核差异、专项及实窗结果。正式JSONL SHA256仍为d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac，旧intent未解除，无账本变更。
+
+下方为历史增量；其“GUI只有PCM/下一步接实时音频”等描述由本段替代，已完成项不再重新入队。
+
+## 当前事实与唯一任务（2026-10-22，GUI模拟发送接入）
+
+- 最新增量（2026-10-23）：GUI显式会话“自动模拟”checkbox已接原setMode/ReplyDispatchControl及同一GuiSimulation/runCwTrial，不增IPC/服务/格式/发送循环。收报exit0收尾且completed/当前有效未编辑提案时派发一次，或完成后显式开启即派发；新收报重置人工。手改禁止开启自动，编辑/切人工/stop撤销原绑定；同提案失败也不自动重试。runner仅模拟绑定+成功lease可无TTY自动执行，真实TTY限制不变，无真实发送。
+- 本轮证据：受影响专项61/61、build/GUI typecheck/build通过；隔离实际窗口完成PCM后点击checkbox→原runner自动一次、无确认框、exit0/原五事件/无横溢出及截图通过。开启于收报中→EOF触发未单独窗口重测，条件/撤销/停止/重复由专项和代码核对；真实电台/付费模型/连续QSO未做。DSH审议exit0但仅行级搜索多条假设不成立，Codex已以实际代码与测试复核，保留报告，不计独立通过。
+- 当前唯一任务状态：GUI人工与自动一次模拟均已有接入/限定证据；本轮收口，不再扩核查或重测人工窗口。下一必要产品缺口是GUI从现有PCM输入接入已存在的实时音频主链，须先核对原receive采集接口后做薄适配；正式旧intent继续阻断，不让现场解除占据全部离线进度。0.0/实时现场收发/连续自动QSO仍未完成。
+- 保护/交付`.local-backups/20261023-000131-gui-auto/`含GUI/runner/tests/文档原副本、dirty、dist/profile、审议、fixture记录/result.json/completed.jpg及用户窗口状态。正式账本SHA256未变，无记录解除。普通GUI重新打开最新构建并恢复用户草稿；此顶部替代下方“GUI自动模式未实现/下一项应接自动”的历史描述。
+
+- 最新收口（2026-10-22 23:54）：用户明确要求停止扩大恢复机制，本轮只做GUI编辑→确认→模拟→结果窗口验收，现已通过。独立fixture工作目录启动同一编译Electron/main/preload/renderer和原runReceive/runCwTrial，真实multimon+mock提案，手改B1AA DE B2BB TNX K；空白/错误正文按钮禁用，完整键入后确认，原runner exit0、原五事件、草稿保留及无横溢出，确认/完成JPEG逐张核对。没有产品源码变化，不重复build/专项。原生文件返回仍为测试进程临时dialog替代；仅隔离验收，不代表正式账本解除或真实发射。原正式JSONL SHA256不变。
+- 当前任务已完成：GUI人工编辑/确认/一次模拟的隔离窗口闭环；下方“窗口确认区/成功结果未验”已被本证据替代。停止扩大核查功能，真实记录解除不再作为所有离线产品工作的前置。正式旧intent仍阻断，真实发送/GUI自动模式/实时电台/完整QSO/0.0仍未完成。下一增量应围绕既定GUI与共用核心自动模式衔接收敛，不再重做本轮窗口验收。
+- 本轮保护/交付：`.local-backups/20261022-235144-gui-success/`含修改前文档/dirty、一次性check.mjs、fixture原五事件/result.json、confirmation.jpg/completed.jpg。测试进程退出，dialog替代已销毁；重新从正式项目目录打开普通GUI。启动时现场无旧GUI进程，无当前草稿可丢失。没有新增产品入口/依赖/服务/记录格式。
+
+- 已实现：GUI当前已完成PCM会话的有效提案可手改正文，经startSimulation/confirmSimulation两个受限IPC进入原runCwTrial→CwTrialSession；模拟预检后要求输入完整最终正文，原重读/intent刷盘/失效与取消检查/一次发送/停止/关闭全部复用。无新服务、依赖、设备协议、记录schema或发送循环；真实设备仍禁止桌面回调且要求原TTY限制。空白无提案草稿不开放发送，GUI自动发送未开放，0.0未完成。
+- 已验证：定向runner/GUI共55/55，build、GUI typecheck/build、diff check通过。首次50/55暴露预检后第三处TTY检查遗漏，修正为仅模拟回复允许桌面回调后最终通过。覆盖完整确认、错误/空确认、真实/缺绑定/自动拒绝、确认中停止、intent后失效、旧确认/重复提交、同目录未决阻断及原五类记录。
+- 真实窗口限定验收：新编译Electron沿原runReceive→真实multimon→mock回复得到CQ TEST及建议，编辑为B1AA DE B2BB TNX K，点击模拟后原logs/cw-trial的历史未决intent使runner退出3；页面真实显示阻断详情且草稿保留，无横溢出，截图已核对。该目录记录与基线逐字节相同，未删除/换目录/清除；无电台、发射或付费模型调用。原生选中文件仍使用测试进程临时dialog返回替代，未冒充原生选择验收。
+- 实现未验：正式窗口确认区和成功结果尚未实测（当前记录目录在确认前已阻断）；上述成功与停止/失效路径只有隔离专项证据。DSH设计60秒、代码审议90秒均exit124，无最终结论，不计独立审议通过；Codex已复核相对基线差异。
+- 最新实现（用户已同意）：原runCwTrial新增--review-intent/--operator/--note显式TTY核查动作，完整确认ID+原intent摘要后原JSONL追加v2 intent_review，旧v1事件沿用；仅解除指定intent对后续新操作的阻断，旧结果仍UNKNOWN，无transport/重放/自动clear。原runner和核查全生命周期持有同一目录锁，目录别名共锁、账本symlink/hardlink拒绝，崩溃锁不自动回收；核查写入后刷盘失败保留锁，防止写入结果不确定却可再次发送。说明见README同入口。
+- 验证：受影响runner/GUI模拟/核查65/65；补同目录恢复→新模拟→新intent再次阻断及审议修正后核查18/18，build通过。DSH交叉审议exit0，发现写入后失败上报不清及锁诊断不足，已加结果UNKNOWN保锁与提示并定向覆盖；未知格式整个目录阻断是预期。旧v1源码确实对v2置corrupted保持阻断；不声称旧程序遵守新锁，核查前必须退出全部旧版任务。Windows/真实设备未验。
+- 当前唯一任务：功能已限定交付，现场原6条记录/1个真实E intent完全未改且继续阻断。待用户提供实际操作人及“旧任务退出、当前电台状态/隔离”的核查事实，并亲自完成TTY确认后，才可执行该条核查；Codex不代填/不自动解除。之后补正式GUI确认/成功回显。0.0、真实发送、连续通联仍未完成，不换目录绕过，不重跑旧预检。
+- 本轮保护：`.local-backups/20261022-211024-intent-review/`含原record/runner/tests/README/MEMORY/ROADMAP/任务/证据、dirty补丁、dist归档与DSH非凭据profile及审议日志；新增核查专项可查。原账本SHA256仍为d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac。
+- 保护：`.local-backups/20261022-203724-gui-simulation/`含原源码/任务/证据/MEMORY/ROADMAP、dirty补丁、dist归档和原记录；新增simulation模块/专项及一次性runtime脚本可查。测试实例已退出，临时dialog替代随进程销毁；普通GUI恢复用户原草稿与呼号，详见restored.json。
+- 本轮只读分析及文档保护：`.local-backups/20261022-205032-intent-review-design/`含修改前MEMORY/任务/证据和dirty补丁。原账本SHA256为d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac；未改业务源码/账本，故不重复产品测试。
+
+下方为历史增量记录；“GUI发送未实现/下一步先接发送”等旧描述已被以上模拟限定实现替代，真实发送与整体04-A仍未完成。
+
+## 当前任务（2026-10-22，人工干预入口）
+
+- 最新修正（2026-10-22）：发现`App.run`对所有返回editing:true的动作都重填草稿，选择/取消文件会覆盖用户手改正文。已仅在显式beginEdit时初始化，其他动作不重写；零IPC/依赖/状态源/发送链变化。GUI typecheck/build通过，真实窗口输入MANUAL DRAFT KEEP→打开原生选择器→Escape取消→文字完整保留，原空白草稿已恢复。保护/结果`.local-backups/20261022-202644-native-chooser/`，含源码/文档副本、dirty、renderer产物、user-before.json/draft-result.json。
+- 原生文件选择：本轮剪贴板/XTest与系统无障碍尝试未完成选中，仍待验；原生打开与取消已实测，不重复把自动化限制诊断成产品选择器损坏。当前窗口无模态框。未新增产品文件输入入口。
+- GUI模拟发送接入点已核实：沿`runCwTrial`，其replyProposal目前明确要求TTY完整正文确认。下一实施需在原runner明确增加桌面确认适配契约并保留预检/重读/intent/取消；不能用伪造isTTY或自动代答来假装用户确认，也不能新增发送循环。本轮未实现GUI提交/发送，0.0仍未完成。
+
+- 最新运行时结果（2026-10-22）：真实Electron→现有chooseFile/startReceive→同一runReceive→真实multimon→mock回复链通过，解出`CQ TEST `，提案`B1AA DE B2BB K`。点击编辑正确带入，改为`B1AA DE B2BB TNX K`后等待1秒保持；自然EOF解码进程退出。第二次用原PCM加稀疏静音尾测试主动Stop，先捕获真实multimon PID8131，再确认退出、state.stopped:true/receiveState:stopped，后续轮询UI为已停止且按钮禁用。无电台/发射/付费模型调用。
+- 限制：原生Open File确实打开，但本环境XTest自动键盘操作没有成功完成选择。本次后半段验收以Electron主进程调试接口临时替代`dialog.showOpenDialog`返回路径，仍点击真实页面并走原文件处理/收报/编辑/停止代码。该测试不是原生文件选择通过，也不证明模型质量或收报中上下文变化时的草稿稳定性；这两项保持待验。未修改产品源码、依赖、IPC、记录格式或业务链。
+- 现场已收尾：退出带临时dialog替代的测试实例，重新打开无主进程调试/替代的正常GUI；按`user-state.json`恢复用户原空白草稿，窗口可操作、无文件对话框、无multimon残留。保护与证据：`.local-backups/20261022-195537-gui-runtime/`含原MEMORY/任务/证据/dirty、用户草稿、实际结果JSON、截图和一次性检查脚本。下一项先收口原生文件选择限制，再沿原runner讨论GUI提交/模拟发送，不能声称整个04-A通过。
+
+- 用户最新确认“已经可以直接操作”：空白人工草稿交互获得用户确认，本项入口修正收口。唯一当前待办回到既有GUI运行时验收：复用已有PCM/解码器和配置，实际窗口选择文件→收报/回复显示→人工修改→停止并确认解码子进程回收。不重开视觉路线，不重跑CLI已通过解码/模型/设备预检。草稿提交/GUI发送仍未实现，完成该限定验收后再沿原runner接入。
+
+- 用户纠正：仅移动按钮仍不能直接编辑。现场CDP确认`proposal:null`时按钮禁用且无textarea。现已去掉两处提案非空前置条件：允许无提案时经原`beginEdit`打开空白草稿，有提案仍以其正文初始化；停止/忙碌仍禁用入口，无新IPC/状态源/发送能力。此修正替代下方“空提案禁用”的旧行为记录。
+- 最新验证：GUI typecheck/build通过；实际Electron点击现有编辑按钮、自动聚焦、`Input.insertText`输入CQ TEST、手动模式/编辑态及无横溢出均通过。测试字符已清空，当前窗口留在可直接输入的空白编辑框。截图已逐张核对。保护为`.local-backups/20261022-194822-gui-blank-draft/`，含目标副本、dirty补丁、renderer构建前归档和editor.jpg；该结果只覆盖空白草稿，不代表建议初始化、提交、发射或PCM/Stop清理验收。
+
+- 用户认可左右布局方向；沿用现有暖白样式，不再重开视觉路线。人工编辑入口已从底部移至回复建议面板，点击后草稿框在面板原位展开并聚焦；底部保留全局停止，调用仍为原`beginEdit`/`stop`。GUI草稿提交/发送仍未实现，不能称为完整人工接管闭环。
+- GUI typecheck/build及现有GUI专项6/6通过。真实Electron 9226窗口、980px桌面截图、760px窄窗截图及中英文切换已核对；窄窗呼号/开始按钮对齐缺陷已修正并测得底边一致，无横向溢出。截图保存在`.local-backups/20261022-193940-gui-intervention/`。这是对上轮缺失视觉证据的补充，非重复解码或设备验收。
+- 用户之前无法交互时曾观测到原生Open File模态框；后一次重启没有实际确认。本轮开始时现场无GUI窗口，现已重新启动并通过X窗口树和CDP确认可见主窗口、无Open File模态框。不能仅凭启动命令退出就宣称已打开。
+- 保护：`.local-backups/20261022-193940-gui-intervention/`保存目标源码/文档、dirty补丁、完整dist归档及DSH非凭据profile副本。未新增依赖、IPC、入口、状态源或发送链。
+- 仍未验：有提案后的Electron编辑点击/输入、原生文件选择完成、Electron内PCM实收与Stop后解码器清理。当前仅完成入口修正和空会话视觉核对；后续沿原主链补运行时验收。
+- DSH本轮只读交叉审议90秒超时exit124，无最终结论；不计独立审议通过，日志保存在上述基线目录。Codex复核仅限本轮展示差异，完整04-A仍待验。
+
+## 当前增量（2026-10-22，工作区布局重排）
+
+- 用户接受Zapier暖白视觉方向，但要求重新考虑UI布局。问题是设置区横向展开并占据首屏主位，收报/回复提案与配置争夺注意力，状态提示和底部操作又离核心内容较远。
+- 已沿现有Electron/React renderer重排：宽屏为左侧会话配置、右侧状态及收报/回复工作区；900px以下改为纵向堆叠；配置文件项改为标签/文件名/选择按钮紧凑排列，呼号与开始操作集中在配置栏。没有改变字段、业务动作、IPC、状态真源或`runReceive`主链。
+- 本轮修改前基线：`.local-backups/20261022-gui-layout-rethink/`（App.tsx、styles.css、任务卡、GUI证据、MEMORY及初始dirty patch）。
+- 验证：`npm run gui:typecheck`、`npm run gui:build`、GUI专项6/6、`git-local diff --check`通过。环境没有Playwright/Puppeteer包，本轮未做Electron截图视觉确认；不得据构建通过宣称窗口布局已视觉验收。Electron文件选择、PCM运行、Stop后decoder清理仍未完成。
+
+## 当前增量（2026-10-22，Zapier 参考）
+
+- 用户指定参考 VibeUI 的 Zapier 风格页。读取其 `preview.html`、style data 与 CSS：暖白 `#fffefb`、近黑 `#201515`、橙色 `#ff4f00` 作单一主行动色、温灰文字/细分隔线、4–8px圆角、Inter功能字体、轻量 hover。该页面为营销式展示，本项目只吸收设计系统，不复制 hero/营销布局。
+- 沿现有 renderer 主链改为暖白工作区；业务顺序和行为不变。顶部工具层使用低透明暖白表面，内容区为清晰平面，主按钮用 Zapier 橙，强调内容仍以 CW 文本可读性优先。没有依赖、入口、IPC、状态真源或业务链变化。
+- 参考来源：<https://vibeui.top/style.html?slug=zapier&lang=zh>，其本地预览 `/design-md/zapier/preview.html`；修改前基线 `.local-backups/20261022-gui-zapier-reference/`。
+- 验证：build、GUI typecheck/build、GUI专项6/6、diff check通过；新Electron截图 `/tmp/cwstation-zapier-reference.jpg`（1280x900，72 KB）已核对。暖色层级/布局可读；按钮在未选择必需文件时按既有业务禁用逻辑变浅，非视觉缺陷。仅截图验收，不代表PCM/decoder/Stop运行时验收。
+
+## 当前增量（2026-10-22，视觉复盘后）
+
+- 用户指出上一轮“玻璃/科技感”仍显低级。复盘 Apple HIG Materials/Motion 与 Microsoft Mica 后确认根因：把材质铺满内容层、用伪频谱/扫描线传递不存在的信号信息、用鼠标视差制造运镜，导致工作区像 HUD 且削弱可读性。
+- 已沿同一 Electron/React renderer 主链修正 `apps/gui/renderer/App.tsx`、`styles.css`：移除全局网格、轨道、视差、伪频谱和扫描线；顶部导航/操作层保留克制半透明材质，收报/提案改为稳定的标准内容表面；运行状态仅保留真实状态标签和短反馈。无新增依赖、IPC、进程、状态真源或业务行为。
+- 依据：Apple HIG 明确 Liquid Glass 应主要用于导航与控件、不要铺在内容层，动态效果应服务于状态/连续性；Microsoft Mica 强调基底层与内容层分离。现版本截图已在独立 Electron 9223 窗口核对：`/tmp/cwstation-visual-review-current.jpg`。
+- 验证：`npm run build`、`npm run gui:typecheck`、`npm run gui:build`、GUI 专项 6/6、`git diff --check` 通过。截图为渲染验收，不代表文件选择、PCM 实际运行、Stop 后解码器清理或电台/天线验收完成。
+- 保护：`.local-backups/20261022-gui-visual-review/`。当前仍只允许沿 V00-04-A 主链推进，视觉候选不再另建路线。
+
+## 当前增量（2026-10-22）
+
+- 多语言与GUI视觉重构已完成：沿唯一`runReceive`/Electron主链，仅改`apps/gui/renderer/App.tsx`、`styles.css`并新增`locale.ts`。支持`zh-CN`/`en`，默认系统语言，顶部可切换并保存`cwstation.ui.locale`；动态CW、呼号、路径、AI正文不翻译。布局收敛为设置→状态→收报/回复→编辑/停止，未增加依赖、IPC、进程、状态真源或发送链。`gui:typecheck`、`gui:build`、GUI专项6/6、diff check通过。保护：`.local-backups/20261022-i18n-gui-redesign/`。
+- Electron实际文件选择、PCM在Electron内运行、Stop后decoder清理仍未验收；不因本次视觉/语言改动重复做无关解码、AI或设备测试。见[GUI证据](docs/evidence/V00-04-A-GUI切片.md)与[任务卡](docs/tasks/V00-04-A-自动派发与GUI-CLI契约.md)。
+- 用户反馈首轮重排仍与Apple预期有明显差距；2026-10-22再次沿同一renderer加入玻璃层、空间网格/轨道、信号装饰、状态光效、按钮反馈与低幅视差，并支持reduced-motion。GUI typecheck/build、边界测试6/6通过；尚无Electron截图级视觉验收，不能将其记为视觉最终通过。保护：`.local-backups/20261022-gui-glass-motion/`。
+
+## 当前版本管理（2026-10-21）
+
+- 当前状态：V00-04-A首增量已限定验收。CLI显式`--reply-auto`使合法本地CQ/AI回退提案在正常PCM EOF后经原runner自动模拟发送一次；默认人工，编辑切回人工并重新确认，stop终止本会话且打断原确认等待。DSH交接87/87；Codex修正编辑/停止/最终派发回调边界后定向33/33，随后同提案改正文不可重发修正7/7，最终build exit0。真实AI发送、实时/连续多轮仍未交付。见[证据](docs/evidence/V00-04-A-会话授权.md)。保护`.local-backups/20261021-193651-session-authorization/`。
+- 当前状态补充（2026-10-22收尾）：V00-04-A GUI沿现有`runReceive`显示PCM收报/AI提案；新块、no_reply、失效和旧会话晚到事件撤销/丢弃旧提案，关闭窗口先触发原AbortSignal并等待receive结束。通用IPC假成功分支已移除；界面不再展示未接入发送链的自动开关。`npm run build`、GUI typecheck/build通过，GUI专项6/6、receive/reply专项45/45通过；Electron CDP仅确认窗口页面加载和控件呈现。文件选择、PCM在Electron内完成、Stop后解码子进程清理仍待实际交互验收。未接实时音频/电台/天线或发射。保护：`.local-backups/20261022-gui-real-receive/`保存原主链目标文件；补充遗漏目标`.local-backups/20261022-gui-receive-closeout/`保存styles与receive测试原文件。
+
+- V00-03-E限定验收完成：在原`ReplySessionImpl`的显式`--reply-prepared`路径中，完整严格匹配首轮`CQ [有限限定词...] DE <配置peerCall> K`时本地生成`<peerCall> DE <ownCall> K`，零HTTP等待；不匹配回落同一AI三字段continuous路径。规则词表/数量上限、事件字段、兼容范围和限制见[任务](docs/tasks/V00-03-E-CQ快速回复模板.md)及[证据](docs/evidence/V00-03-E-CQ快速回复模板.md)。专项最终38/38、build exit0；首次专项36/38的上限测试误算已修正并保留日志。CLI整合覆盖本地命中、后一轮AI、EDIT和原runner一次模拟发送；未调用真实模型/设备/天线，无空口命中率或整体时延结论。基线.local-backups/20261021-184010-cq-template/含初始dirty patch、目标源码归档、dist/profile、测试/构建日志及文档收口前副本。
+- V00-03-D整句候选缓存历史限定验收仍是历史事实：当时显式prepared模式使用AI附带至多3条下一轮完整文本精确匹配候选，专项68/68及两轮runReceive模拟闭环通过；未证明真实命中率或通联实用性。其AI候选语义已被V00-03-E替换，不再是当前prepared入口行为；历史任务和证据顶部注明替代关系。EDIT及最终正文重校验仍由当前代码沿用原runner，最终正文到一次模拟发送的历史证据见D和E记录。详见[历史证据](docs/evidence/V00-03-D-预备回复与人工编辑.md)，原保护.local-backups/20261021-165947-prepared-replies/。
+- V00-04-A首增量限定验收完成：A策略冻结，不重问A/B/C；同一runReceive/runCwTrial已接入进程内会话授权，CLI显式auto后仅PCM EOF一次模拟发送。整个04-A仍为当前任务，GUI、真实AI发送、实时/连续多轮未交付。修改权/六项/保护基线见[任务卡](docs/tasks/V00-04-A-自动派发与GUI-CLI契约.md)。不重跑03-D旧68项、解码或设备验证。
+
+- V00-03-C限定验收完成，当前任务关闭，暂无新实施任务（用户同意，速度要求已纳入）：原receive/reply保留有限内存上下文，AI可自主reply/wait/end，不写死QSO话术；历史严格区分真实接收与NOT SENT提案。最终回复32/32、旧cw-trial28/28沿用本次证据、build、真实multimon/既有PCM→编译CLI→本机脚本化HTTP两轮通过，第二请求带前文、最终model_end，exit0。模型预算默认5秒，idle默认2.5秒且核心/CLI共同最小1秒，单调时钟分离三段耗时；20WPM声明下示例正文预计8.22秒，非实测码速/电台设置/物理完成，脚本化HTTP不能证明云端时延。DSH原实现/自查后编排验证反复失败/服务器等待，Codex停止并接回，监督shell0不是正常交付；交接稿codex-review-before保留。Codex修复idle门槛、旧提案同步撤销、发布前deadline及渲染历史统计；最终DSH只读审议180秒超时exit124，随后仅整理已有发现的结论exit0，无S0/S1，不算第二次独立重审；Codex复核后验收。结束缓冲可空、历史含重叠尝试快照等限制见docs/evidence/V00-03-C-AI连续上下文与时延.md。保护.local-backups/20261021-152132-qso-context/含dirty/源码未跟踪/dist/profile及docs-before-final-closure，源码内容/mode一致、dist比较exit0、protected9项及profile不变。连续与03-B发送互斥，旧未决intent/真实E/TEST不改，不自动解锁/多轮发送；未做产品真实模型/硬件/全仓或旧解码专项。
+
+- V00-03-B限定验收完成（用户同意）：已校验回复经人工完整键入确认，接入同一runCwTrial/CwTrialSession模拟发送循环；PCM文件/TTY限定，无真实AI报文发射/实时输入发送/多轮/GUI。DSH交回exit0后Codex补receive取消传入runner与当前提案回调，意图落盘后失效零派发；DSH差异交叉审议exit0，未发现S0/S1，Codex已复核。最终两份受影响专项49/49、build、编译CLI+真实multimon/既有PCM+mock+PTY通过，B1AA DE B2BB K经确认模拟发送/停止/关闭，五条原格式记录完整，exit0；真实E/TEST白名单不变。没有新服务、进程种类、协议/存储格式或第二发送循环。保护.local-backups/20261021-020304-reply-send-sim/含dirty/源码未跟踪/dist/非凭据profile、codex-review-before及测试/PTY日志；源码归档内容/mode一致（tar提示mtime精度），dist比较exit0。DSH首次失败完整日志未保留，转录与限制明确记录。证据见docs/evidence/V00-03-B-回复衔接模拟发送.md。当前任务收口，暂无新实施任务；03-A与旧解码/模型验证不重复入队。
+
+- V00-03-A真实模型限定验收已完成（2026-10-21用户同意修正）：同一reply/chat中仅官方DeepSeek已知模型显式非思考+JSON输出，补白名单结束原因/输出长度/固定失败分类，不改version1配置、旧explain默认请求或校验门槛。最终回复专项17/17、受影响旧assistant16/16、build exit0；现有编译CLI+既有真实multimon/PCM解出CQ TEST，经官方deepseek-flash一次修正后调用，约1856ms得到B1AA DE B2BB K，validated:true/action:reply/finishReason:stop，CLI与独立验收均exit0。凭据只按本次授权临时注入，文件内存比较未变，无打印/复制/产品自动读DSH能力。首次2683ms的reply_output_invalid失败原样保留，因当时无诊断不能追溯断定具体根因；本次只证明参数修正后样本通过，不证明完整QSO语义/空口准确率/长期稳定。保护.local-backups/20261021-013226-deepseek-json-fix/含目标/dirty/dist-gnu-before.tar（比较exit0）、红绿/旧回归/build/真实验收；首次失败在.local-backups/20261021-012059-deepseek-live/。当前任务收口，暂无新实施任务；不重复请求、不自动启动GUI/发射，下一任务需对照版本路线确定。
+
+- 现场条件：用户可接电台，但明确目前无法接天线；尚未确认USB连接或在线。空口收报暂缓，真实接收音频→解码→CLI显示留待天线/合适信号源具备，不用无信号输入判断解码效果。真实模型配置与单次服务验收现已完成，复用已有收报样本，无需电台或天线，详见顶部结果。本次未操作电台；不重做历史只读/八项预检/E发送，不把可接设备视为发射授权。早期条件记录保护为.local-backups/20261021-005904-no-antenna/和.local-backups/20261021-005659-radio-available/，其中当时的模型待办已被本次验收替代。
+
+- V00-03-A首次接入验收（历史阶段，当前结果以上方真实模型验收替代）：现有receive→单轮组报→assistant共用传输→纯校验→CLI展示；编译CLI+既有真实multimon/PCM解出CQ TEST，经本机脚本化HTTP一次请求显示合法回复，exit0。当时回复专项14/14、受影响传输回归4/4、build通过；DSH旧assistant16/16、旧receive CLI5/5、audio CLI4/4沿用。当时未配置真实模型、未读取Harness凭据；该待办现已完成，不重新入队。不是完整QSO或自动发射。详见docs/evidence/V00-03-A-收报回复提案.md；保护.local-backups/20261021-003727-rx-reply/，交接稿在codex-review-before。DSH已产生实现/自查/测试，因超出必要收尾而由Codex停止，监督进程exit124，不能记为DSH正常完成exit0；Codex接回并修正呼号顺序、缓存失效、晚到body回收后验收。
+
+- 用户要求重新明确设计目标，建立项目管理并推进0.0；目标明确后冻结范围，直至完成，除万分必要的阻塞修正外不新增任何东西，其他留到之后版本。
+- 唯一版本范围和里程碑入口为docs/ROADMAP.md，事实仍以本文件当前事实清单为准，任务与验收沿用现有目录；不新建平台或重复清单。
+- 用户最新确认的产品边界：只复用解码能力，用户只操作本项目GUI/CLI，解码器在后台工作；不能独立使用解码组件则另寻方案，不以隐藏/最小化完整第三方GUI充当组件化。
+- V00-02-C限定交付已验收：现有cwrig receive/共同receive模块已迁移到单个multimon-ng后台进程，PCM文件/stdin输入，旧--endpoint生产分支退出。DSH实现exit0，Codex修正空格保留/空输入补静音/预取消打开源三项边界，最终专项24/24、build通过；编译CLI用真实引擎和既有未补静音PCM解出CQ TEST，exit0。见docs/evidence/V00-02-C-后台收报主链接入.md。保护.local-backups/20261020-230536-receive-migration/，codex-review-before保留DSH交接稿，原始红/绿/build/CLI日志已保存。
+- V00-02-B候选探针通过：multimon-ng1.6.2固定commit b5f7d71c5e9b5a76093ba55c515968dc40f92804在独立工具目录用户态构建，无GUI/声卡/网络；既有CQ TEST样本转22050Hz PCM并补0.5秒尾静音后完整解出，stdin EOF前输出、SIGTERM退出通过。首次未补静音只解出CQ TES，失败证据保留。见docs/evidence/V00-02-B-后台解码组件探针.md。DSH因沙箱未交付可复核产物，已停止exit143，Codex执行，不冒充独立DSH验收。保护.local-backups/20261020-224014-multimon-probe/含原文、dirty补丁、profile和探针日志，profile cmp不变。
+- V00-02-D已限定验收：DSH实现exit0，新增实时专项16/16、受影响旧CLI5/5、build通过；Codex用编译CLI+真实FFmpeg在Linux/WSLg回放monitor采集，完整解出CQ TEST，主动停止exit0、双进程回收。首次播放器尾部截断仅解出CM，失败/包络诊断保留；补测试播放尾静音后通过，产品参数/解码器未调。见docs/evidence/V00-02-D-实时音频输入.md。保护.local-backups/20261021-000636-audio-input/含dirty/原未跟踪/dist/目标/profile，codex-review-before含交接稿。Windows PATH未找到FFmpeg（非全盘结论），原生运行/物理麦克风/电台/噪声/长时未验；当时“下一切片待定”现由用户授权的V00-03-A替代，fldigi冻结。
+- 已把复用调查经验写入既有任务自查规范；全局单主轴规范已在/home/li0214/.codex/AGENTS.md保留，不再新建同职责技能。保护.local-backups/20261020-204508-fldigi-rx/包含dirty补丁、原未跟踪文档、目标副本及dist/logs/node_modules归档；codex-review-before保留DSH交付后修正前副本。官方Ubuntu fldigi4.2.10-1用户态解压在/home/li0214/DSH/tools/fldigi-4.2.10/，无系统安装。实测其address参数仍监听0.0.0.0，因此测试置于仅lo的用户/网络namespace，未开放网络或接电台。WSLg文件框未确认载入WAV，默认ALSA报错，根因待核实；测试进程已退出，勿推断当前在线。
+### 本日较早记录（历史，不是当前待办）
+
+以下保留阶段证据与讨论；其中“下一步/尚未实现/当前任务”以本页顶部及当前事实清单替代，不重新入队。
+
+- 用户提供C盘桌面REA实战笔记并要求多用DSH分析几款常用软件，吸收经验后准备开始。V00-01定向调查已收口：DSH headless exit0，fldigi/N1MM+/DXLog三款，Codex复核；报告见docs/reviews/V00-01-常用软件复用结论.md。调查阶段未跑产品测试或目标软件，不再次开展软件普查。
+- V00-02开工前的“尚未实现/安装待确认”已被上方实施结果替代。继续有效：仅收不发、GUI复用共同适配、原发报链不变；不采纳再造Fake事件链/反射框架，不把N1MM广播当完整收发API或DXLog事件当物理停发证据。
+- 保护与本轮边界：.local-backups/20261020-202954-reuse-study/含原状态文档、dirty补丁、DSH非凭据profile副本、原DSH报告及research证据；profile cmp不变。只增任务/研究报告并更新ROADMAP/MEMORY，未改产品代码，无新运行入口、构建、测试或设备操作。具体采用既有XML-RPC会引入外部解码进程/协议依赖，不能虚报为零增量；不另建设备平台。
+- 用户最新要求粗路线即可，认可项目已有较多成果，明确反对不必要的重复验证拖慢进度。当前大方向已明确，不再全面穷举设计；ROADMAP里程碑已按收报复用、AI/发送接通、GUI/CLI和最终交付更新，旧A计划不再作为当前任务。下一步只调查收报复用对象及必要边界，不重做已验能力，未据此擅自启动实现。
+- 验证减负已落入既有任务自查规范：文档不跑产品测试、局部变更只验受影响行为、复用同版同环境证据、无变化不重跑/反复审议；保留改动涉及的发射/停止和最终端到端必要验收。
+- 本轮文档保护为.local-backups/20261020-184121-lean-roadmap/（三份修改前文件及已有补丁）；仅更新ROADMAP、MEMORY和任务自查规范，不运行构建、测试、REA、模型或设备。
+- 界面选型用户已接受：Electron + React + TypeScript，Vite用于前端构建，并提供共享同一控制核心的CLI，见ADR-021；不再重开框架比较。GUI已接PCM receive/AI提案显示；实时音频/电台设备、GUI发送、安装包、截图视觉点击和跨平台验收仍未做。具体范围依当前任务卡推进，不重开框架比较或既定授权策略。
+- 用户回复“行”后，沿单频、单个对端、用户在场、人工启动后完成限定自动通联的建议继续论证；日常/比赛类型仍未明确，不扩张为无人值守、多对端或自动扫频。当前讨论音频采集与CW解码，建议复用现成解码器和P0-004已有样本，具体技术未定；本轮未安装或运行候选。
+- 用户同意复用优先并要求避免造轮子；正在安装REA，之后用其分析已有软件、学习吸收。具体研究规则见ROADMAP：源码/公开接口优先，REA用于确需安装包或运行证据的分析，先找直接复用/调用/薄适配机会，不自动重写成熟能力。已读取REA技能，未确认工具连接或引擎可用，未开始分析目标，也不重复安装环境。
+- 本轮记录保护为.local-backups/20261020-183514-rea-reuse/，保存MEMORY/ROADMAP原文和既有补丁；仅更新这两个文档，不运行REA、候选软件、模型或设备。
+- 本轮讨论记录保护：.local-backups/20261020-183154-rx-discussion/保存MEMORY/ROADMAP原文及已有补丁；仅更新这两个文档，未改源码或重测已有成果。
+- 本轮选型记录保护：.local-backups/20261020-182413-ui-choice/保存原MEMORY/ROADMAP及既有补丁；新增ADR-021创建前确认不存在。仅修改设计记录，未安装框架、实现功能或访问模型/设备。下一步按ROADMAP先讨论单一通联场景与收报输入条件，不进入实操。
+- 本轮讨论记录保护为.local-backups/20261020-181405-ui-design-discussion/，只修正MEMORY与既有ROADMAP的讨论状态，不改运行代码、不运行设备/模型/构建/测试。
+- 文档保护：.local-backups/20261020-180533-v00-scope/保存修改前文件与已有工作区补丁；本轮只改ROADMAP/AGENTS/MEMORY/README，无模型/设备/构建/测试操作。设计定稿仍须既有审议与用户确认。
+
+## 产品目标纠正（2026-10-20历史讨论，目标持续有效）
+
+- 产品目标是AI相关的CW自动发射软件。既有单次CW试验是设备执行基础，不是产品终点；单主轴要求持续推进用户目标，不能解释为长期只完善试验保护。
+- Codex上一轮把“真实intent人工核查/解除”建议为下一任务，偏离产品目标；该优先级建议撤回。这个限制仍属事实，但尚未证明是下一项AI功能的阻塞，不能自动成为前置工程。
+- 已核对apps/cwai.ts、packages/assistant/src/explain.ts及AI-001：AI现有能力仅为状态文本解释，兼容文本后端已实现并完成离线验证，真实服务商未验收；尚未形成AI生成CW提案并接入既有设备执行链的闭环。
+- 当前任务为分析AI到CW执行的最小接入缺口，尚未选定实施契约。复用既有assistant与ADR-020设备链；涉及报文范围、提案接口或自动授权策略改变时先讨论，不新增设备平台。AI只提案、确定性逻辑负责校验和执行的既有边界仍有效；人工确认首切片与最终自动化目标须明确区分。
+- 本次仅纠正文档，不接电台、不调用真实模型、不重做已有测试。后续是否推进抄收、通联决策、自动CQ或何种发报场景，不能凭产品总目标臆定。
+
+当前执行规则见 `AGENTS.md`“单主轴执行约束”。用户要求保持一条主轴，根因与规范修正见 `docs/reviews/REV-020-重复链路根因与项目规范.md`；后续按此约束增量推进，不从历史计划另开链路。
+
+## 当前事实清单（提下一步前必读，2026-10-21）
+
+这是本项目已做/未做的唯一当前摘要，详细证据保留在原文件；不要另建同内容清单。开始任务、回答“下一步”、委派、用户纠正事实及交付前必须核对本节和相关证据。无法定位证据先标“待核实”，不得直接说没做或重新安排。下表不是自动执行队列。
+
+当前环境：最近核实仍未接电台；2026-10-21用户表示可安排连接，当前连接/在线状态待现场确认。设备执行仍为ADR-020既有CwTrialSession。fldigi冻结，产品CLI用multimon-ng，文件及Linux/WSLg实时回放monitor样本均已通过；临时进程已退出。工具位于/home/li0214/DSH/tools/multimon-ng-v00-02/，非分发包。D新增一个FFmpeg采集子进程输入同一解码模块，无新服务/真源；未重跑设备/全仓，发送源码/专项哈希与修改前一致。
+
+### 已完成，默认沿用已有证据
+
+| 能力/工作 | 已完成范围及证据 |
+|---|---|
+| 会话授权与一次自动模拟派发 | 2026-10-21：04-A首增量限定验收；默认人工，显式auto对当前合法本地/AI提案零prompt，经原预检/重读/intent/发送/停止/关闭。编辑暂停并确认最终正文，停止打断等待、撤销后不复活，同提案一次消费。DSH87/87交接，Codex受影响33/33及最终消费7/7、build；仅PCM文件/TTY/EOF模拟一次，GUI/真实/实时多轮未完成。见docs/evidence/V00-04-A-会话授权.md |
+| Electron/React GUI最小切片 | 2026-10-22：沿现有runReceive事件回调接PCM文件收报及AI提案显示；旧/no_reply提案失效、退出等待取消清理；构建、GUI 6/6、receive/reply 45/45，Electron页面启动/控件已用CDP观察。文件选择、Electron内PCM流程、Stop后解码子进程清理仍待交互验；不含发送/实时设备，见docs/evidence/V00-04-A-GUI切片.md |
+| CQ本地快速回复及CLI人工编辑 | 2026-10-21：03-E限定验收，38/38、build；显式prepared模式严格CQ命中零模型请求，未命中走原AI。03-D整句候选语义已被替代，历史68/68证据保留；EDIT、最终正文校验和原runner一次模拟发送继续复用。仅prepared正常PCM EOF允许一次模拟衔接，非完整多轮自动发送，见docs/evidence/V00-03-E-CQ快速回复模板.md |
+| 连续AI上下文与速度显示 | 2026-10-21：03-C限定验收完成，32项/build/编译2轮CLI通过，DSH审议结论及Codex复核已收口；同一receive/reply保留真实接收及未发提案历史，reply/wait/end、撤销/预算、至多12次尝试/12000字符硬界。默认idle2.5秒+模型预算5秒分别显示，声明WPM用现有signal估算时长。脚本化HTTP只验接通，未验真实多轮语义/实际码速/连续发送；见docs/evidence/V00-03-C-AI连续上下文与时延.md |
+| 回复经人工确认进入既有模拟发送 | 2026-10-21：V00-03-B最终专项49/49、build及编译PTY通过；真实解码样本→mock回复→完整正文确认→同一runCwTrial预检/重读/intent/一次模拟发送/停止/关闭。取消等待确认、落盘后提案失效零派发；同目录未决intent继续阻断。仅PCM文件/TTY，未开放真实AI发射或实时多轮；见docs/evidence/V00-03-B-回复衔接模拟发送.md |
+| 收报到真实模型单轮回复提案及CLI显示 | 2026-10-21：V00-03-A修正后限定验收完成，回复17/17、旧assistant16/16、build通过；编译CLI+真实解码样本→真实DeepSeek一次请求→B1AA DE B2BB K、validated/advisoryOnly、约1.9秒、exit0。原脚本化HTTP/取消撤销证据沿用；无自动发射，证据见docs/evidence/V00-03-A-收报回复提案.md |
+| 实时音频采集进入同一解码主链 | 2026-10-21：D支持现有receive的FFmpeg pulse/dshow输入选项，真实Linux/WSLg monitor回放解出CQ TEST、主动停止exit0；新专项16/16、旧CLI5/5、build通过。dshow仅代码/参数，Windows及电台未验；见docs/evidence/V00-02-D-实时音频输入.md |
+| 无GUI解码组件探针及产品接入 | 2026-10-20：B探针证据沿用；C迁移现有CLI/公共模块，真实编译CLI+未补静音PCM解出CQ TEST、exit0，专项24/24、build通过。Windows/声卡/噪声/电台未验；见docs/evidence/V00-02-C-后台收报主链接入.md |
+| fldigi实验适配（现冻结） | 2026-10-20：现有CLI接入、固定rx.get_data、XML/限时限量/取消/JSONL；build和专项15/15通过，真实fldigi4.2.10空读取exit0。仅验证完整应用接口，不满足最新独立后台组件边界；保留代码/证据，不继续扩建。见docs/evidence/V00-02-fldigi收报薄适配.md |
+| 默认rig.sh真实只读监视 | 2026-10-11/12实机及用户确认：频率/模式跟随、USB拔插后C重连、Q退出释放/重启连接；不是尚未接入。见[P1-007](docs/evidence/P1-007-status-service.md)文末及[P2-003b](docs/evidence/P2-003b-rig启动监督.md)用户后续反馈 |
+| 八项发送上下文预检 | P2-015既有真实COM17试验读回频率、模式、TX频率/TX状态、Split/RIT/XIT、Break-in并通过；与默认只读03/04不是同一检查，但两者都有历史实机证据。见[P2-015](docs/evidence/P2-015-受控CW发送闭环.md) |
+| 一次E、停止命令应答及侧音 | 2026-10-15用户现场确认E/17 FF各有FB、听到本机侧音、Q退出；已做命令/本机反应试验，不是尚未试发。仍非报文完成/物理停发/射频证明。见P2-015 |
+| 主入口收敛、取消与退出语义 | P2-017B离线通过：复用既有会话，旧脚本转发；确认/重读/intent期间取消不得晚到派发，关闭错误非零。见[P2-017B](docs/evidence/P2-017B-最小设备链路收敛.md) |
+| intent阻断及记录故障后的尽力停止 | P2-017C限定离线验收完成：intent前失败零派发、发报后记录/诊断错误不抑制一次尽力停止、重复请求不重发、同目录阻断；Linux/Windows源码/编译各46/46，根入口0、同目录主入口/旧别名各3，DSH修正复核通过。见[P2-017C](docs/evidence/P2-017C-记录故障不阻断停止.md)；这些记录机制已检验，不再列为待验证 |
+| 既有Fake核心、持久化与维护 | Phase 0批准/执行/审计/unknown核查、SQLite、离线配置/备份/核查/恢复已有交付；只限对应Fake核心，不等于真实试验unknown可解除。见docs/evidence/P0-002.md、P0-003.md、P0-005.md |
+| 只读状态历史、Julia离线能力 | P1-008历史记录、P1-009历史分析已有结果；P0-004 CW合成/噪声/文件校验已验收。不是待重建工具。见docs/evidence/P1-008-status-history.md、P1-009-julia-history-analysis.md、P0-004.md |
+| AI只读建议及其他Fake候选 | AI-001 mock/disabled/兼容文本接口离线验证已有实现；RemoteFake、新三进程Fake操作及独立读取仲裁候选已有代码/离线证据，设备候选扩建按ADR-020冻结，不误记为不存在，也不当成当前主链。见docs/evidence/AI-001.md、P2-017A-统一操作Fake首切片.md及REV-019 |
+
+### 尚未实现/集成，或没有相应验证证据
+
+| 事项 | 准确状态，不自动开工 |
+|---|---|
+| 快速回复剩余适用性 | 03-E已实现并限定验收首轮严格CQ场景及显式配置呼号填充；真实覆盖率、其他交换字段/场景及动态AI预备方案仍未验或未实现。03-D整句缓存已被替代，不再列为当前待改机制。真实多轮发送状态尚不存在，不得从NOT SENT提案推断通联阶段；详见ROADMAP当前决议 |
+| 真实模型剩余质量/运行范围 | V00-03-A修正后单次真实服务/提案校验已通过，不能再列“尚未配置/从未真实调用”。多样报文语义质量、长期稳定与完整QSO未验；产品正式运行仍需环境变量凭据，本次临时授权不实现产品自动读取DSH密钥。首次失败具体分支不可追溯，保留证据，不为追查旧输出重复发请求 |
+| V00-02剩余现场输入/平台范围 | 文件/stdin、实时采集适配及Linux/WSLg monitor已验收；Windows原生/物理麦克风/电台USB音频、侧音隔离、噪声与长时未验。下一切片待定，不重做已过迁移/样本/采集专项 |
+| P2-017B/C改动后的真实设备故障回归 | 最新改动只完成离线专项；未用真实设备复验相应取消、存储/关闭故障及停止时延。不能因此抹掉已通过的历史只读/预检/E试验，也不必无依据全套重测 |
+| 报文完成、物理停发、天线端射频证据 | 未达到验证门槛；FB、侧音、RX、功率0及关闭端口不能替代。不是“从未发送过E” |
+| 真实未决intent的人工核查/解除 | 用户同意后已实现原JSONL显式TTY核查、v2追加及目录互锁，离线限定验证通过；现场6条记录及历史E intent未改、未解除，仍阻断。等待真实人工核查事实与确认，不删除/换目录/自动解除，旧结果仍UNKNOWN |
+| 永久写盘挂起、同形ACK归属、多实例竞争 | P2-017C明确未覆盖；发送write_failed时既有会话可能已自动关闭，不保证停止帧写出。未验证不等于已证实故障 |
+| 连续日常操作、自动CQ/恢复 | 不在当前单次试验能力内，未开放；先不把它扩成平台任务 |
+| 图形操作界面、Windows成品分发 | GUI已接PCM收报/提案/编辑/模拟发送；PCM、编辑、停止清理和历史intent阻断已有窗口证据，文件返回用临时dialog替代。正式窗口确认/成功结果、原生选中文件、真实发送、安装包和跨平台验收仍待验；不重开框架选型 |
+| 完整抄收/QSO/比赛计分 | DeepSeek单轮服务与提案、人工确认后模拟发送、连续内存上下文/AI动作及计时已接通；真实多轮语义质量、实际码速/空口收口与换手、真实AI回复发送、实时输入发送衔接、完整自动通联及计分未交付 |
+| 便捷只读查看试验记录 | 记录scan/readAll已存在；统一的用户查看参数尚未实现，属于可选便利功能，用户未选定、未证明为当前阻塞，不作为重验记录机制的理由 |
+
+### 防止再次重复工作的具体规则
+
+- 只有受影响代码/接口/环境变化、已有证据明确不足、出现回归或用户要求时，才安排定向复验；写明变化与具体用例，不能用“当前没接设备”“本轮没重测”推导“以前没做”。
+- 每次提出下一步，先对照已完成项排重，并指出它对应哪一条真实未完成事项及为何现在需要；未确定就如实说尚未选定，不临时编一个任务。
+- 实现、验证、用户确认、限制及优先级变化后同步更新本节；用户纠正事实后先修清单，再继续规划。本轮连续误提已有只读/预检验收的建议撤回，不进入待办。
+
+## 最近已完成 P2-017C：记录故障不阻断一次尽力停止（2026-10-20）
+
+- 既有runCwTrial中send_result/stop_intent写盘失败会跳过停止。原地修复为发送尝试后的异常先调用同一个单次停止函数，再显式关闭；stop_intent失败继续一次sendStop，stop_result失败保留非零。诊断输出移到停止请求和结果记录之后，避免输出异常抑制停止。发送前intent失败仍零发送/零停止，任何intent仍未解决并阻断重跑，ACK不是物理停止证明。
+- 没有增加入口、进程、协议、记录格式、依赖或候选会话；默认只读与冻结链路不改。修改产品范围仅apps/rig-cw-trial.ts、tests/cw-trial.test.ts。
+- DSH写入5项新测试后因余额不足exit1，未完成实现/自测；确认退出后Codex接回，复现18项中4失败，完成修复并加2项测试。用户确认充值后原通道完成首次审议exit0，指出输出顺序、组合退出码与入口证据条件；Codex另用模拟复现输出组合故障，修正并补3项测试。最终build exit0，Linux/Windows源码和编译版各46/46（主链23+串口23），0跳过。根入口PTY模拟exit0，同目录主入口/旧别名重跑各exit3。未运行真实串口或实机发报，不外推为全仓通过。
+- 保护：HEAD 2fcfd33及.local-backups/20261020-152822-trial-stop-storage/，保存前轮未提交补丁、未跟踪文档、MEMORY/README和dist/logs修改前归档，tar比较通过，DSH非凭据配置cmp不变。证据见docs/evidence/P2-017C-记录故障不阻断停止.md。
+- 状态为本项限定离线修复已验收：DSH首次审议及最终差异复核均exit0，后者确认条件修正，Codex核对文档和范围后收尾；下一功能尚未选定，不自动扩建。发送本身write_failed时会话可能已经自动关闭，只保证调用尽力停止函数，不保证写出帧；文件系统永久挂起、同形ACK归属及物理停发仍未覆盖。
 
 ## 已选主链路：既有单次CW设备会话（2026-10-20）
 
@@ -19,6 +231,10 @@
 - 当前静态核查：目录约361MiB，其中备份约298MiB、node_modules约52MiB；仅2个直接运行依赖、3个开发依赖，未发现依赖框架堆积。主要负担是多条流程/状态机/记录并存：旧daemon核心及RemoteFake变体、真实只读、独立CW试验、新Fake操作链路。源码apps/packages合计约2.1万行（含注释及packages内测试），17个apps文件、12个模块目录。体积和行数不是性能或可靠性结论。
 - Codex纠正上一轮判断：真实只读监视、显式重连和端口释放已有历史实机证据；不是尚未开始真实只读接入。新Fake切片未接真实transport，不应据此忽略旧成果、重做已有能力。正式账本加重启恢复只是此前建议，不是用户已批准的下一任务。
 - 核查对象为干净基线ca12648，结果见docs/reviews/REV-019-最小闭环与复杂度核查.md；本轮只改记忆/路线/核查记录，不删代码、备份或用户数据，不装软件、不构建、不启动设备。未测运行时性能，不冒充完整代码或独立DSH审议。
+
+## 历史记录边界
+
+下方保留各阶段原始决定、证据、用户要求与未决项。其中的“下一步”“待接入”“后续依赖”均为当时状态，不是当前执行队列；持续有效的用户要求仍须遵守，路线以上方当前决定、AGENTS单主轴约束及ADR-020为准。历史设备状态也不代表设备现在仍运行。
 
 ## P2-017A Fake 读取超时修正（2026-10-20）
 

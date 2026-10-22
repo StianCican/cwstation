@@ -1,6 +1,6 @@
 # P1-007 独立只读状态服务核心
 
-日期：2026-10-11。当前里程碑完成核心服务，并完成监视台 IPC 客户端化；真实 COM17 服务接管仍待现场验收。
+日期：2026-10-11。当前结论：真实COM17只读服务、频率/模式跟随、USB拔插显式重连、Q退出释放均已完成限定验收，见文末“最终退出释放确认”。下方初始实现与当时待验项仅保留历史过程，不代表仍未验收；2026-10-20核对摘要，当前能力清单见../../MEMORY.md。
 
 ## 已完成
 
@@ -45,7 +45,7 @@ Unix socket 与 Windows 命名管道模拟均返回 `ok:true/source:rig-statusd/
 本轮新增验证：`npm run build` exit 0；Linux 模拟 `rig-statusd` + `cwrig status --endpoint`
 与 `cwrig read --endpoint` 均返回 `ok:true/status:ready/readOnly:true`；`bash -n rig.sh` exit 0。
 
-## 未完成
+## 当时未完成（后续已完成，见文末）
 
 - 真实 COM17 只读服务验收：先退出旧 direct monitor，再由 `rig.sh` 或 `rig-statusd` 持有
   COM17，验证调频/模式跟随、拔插后的显式 C 重连、Q 退出释放；不得发送写设置或发射命令。

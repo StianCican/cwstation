@@ -190,7 +190,7 @@ export function cwTrialContextEquals(left: CwTrialContext, right: CwTrialContext
 }
 
 export interface CwTrialApprovalInput {
-  readonly message: CwTrialMessage;
+  readonly message: string;
   readonly context: CwTrialContext;
   readonly sessionInstanceId: string;
 }
@@ -231,7 +231,7 @@ export type CwTrialSendOutcome =
   | "timeout";
 
 export interface CwTrialSendResult {
-  readonly message: CwTrialMessage;
+  readonly message: string;
   readonly outcome: CwTrialSendOutcome;
   readonly ackObserved: boolean;
   readonly detail: string;
@@ -423,7 +423,7 @@ export class CwTrialSession {
    * 写出一次固定短报文并等待 FB/FA。只允许在成功读取上下文后调用一次；
    * 返回的 outcome 永不声称报文已完成。
    */
-  async sendMessage(message: CwTrialMessage): Promise<CwTrialSendResult> {
+  async sendMessage(message: string): Promise<CwTrialSendResult> {
     if (this.messageAttempted || this.phase === "sent") {
       throw new CivSessionError("CW trial session already attempted its one message; only stop and exit remain");
     }

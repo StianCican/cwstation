@@ -7,7 +7,7 @@ import { CivError, CivReadOnlyClient, createSimulatedCivTransport, openSerialCiv
 } from "../packages/devices/src/index.js";
 import { RigStatusClient, parseRigStatusEndpoint, readRigStatusHistory } from "../packages/rig-status/src/index.js";
 
-const USAGE = "cwrig simulate | cwrig status --endpoint <path|\\\\.\\pipe\\name> | cwrig read ... | cwrig tx --dry-run (--text <ASCII>|--stop) | cwrig history --file <path> [--tail N] | cwrig monitor ...";
+const USAGE = "cwrig simulate | cwrig status --endpoint <path|\\\\.\\pipe\\name> | cwrig read ... | cwrig tx --dry-run (--text <ASCII>|--stop) | cwrig history --file <path> [--tail N] | cwrig monitor ... | cwrig receive --decoder <executable> (--pcm-s16le <file|-> | --ffmpeg <executable> --audio-backend <pulse|dshow> --audio-device <name>) [--timeout-ms N] [--reply-config <file> --own-call <call> --peer-call <call> [--reply-idle-ms <1000..10000>]] [--reply-continuous [--reply-wpm <5..60>] [--reply-budget-ms <100..10000>]] [--reply-prepared] [--reply-trial-simulate --reply-trial-record-dir <dir> [--reply-auto]]";
 
 type Json = Record<string, unknown>;
 
@@ -243,6 +243,10 @@ export async function main(argv: readonly string[], opener: SerialOpener = openS
       const { runMonitor } = await import("./rig-monitor.js");
       return await runMonitor(options);
     }
+    if (argv[0] === "receive") {
+      const { runReceive } = await import("./rig-receive.js");
+      return await runReceive(argv.slice(1));
+    }
     if (argv[0] === "status") {
       const endpointFlag = argv[1];
       const endpointValue = argv[2];
@@ -298,7 +302,7 @@ if (isDirectExecution()) {
       process.exitCode = code;
       // A native operation may remain pending after a reported cleanup timeout.
       // Bound the standalone CLI lifetime; OS process teardown releases its handles.
-      if (["read", "monitor"].includes(process.argv[2] ?? "")) process.stdout.write("", () => process.exit(code));
+      if (["read", "monitor", "receive"].includes(process.argv[2] ?? "")) process.stdout.write("", () => process.exit(code));
     })
     .catch((error: unknown) => {
       print({ ok: false, code: "internal", error: error instanceof Error ? error.message : String(error) });
