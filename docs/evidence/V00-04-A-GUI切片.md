@@ -1,5 +1,53 @@
 # V00-04-A GUI最小垂直切片
 
+## 2026-10-27：现场输入首次收音（内容未验收）
+
+用户已连接电台/端馈，并确认Windows声音输入选择USB Audio CODEC。仅授权收音，不执行串口/发送。复用现有WSL GUI、FFmpeg pulse/RDPSource、原multimon-ng及mock回复配置，无产品源码/接口/依赖/构建变更。Windows端点此前枚举存在；RDPSource是Windows默认输入转接，本次没有独立验证信号来源相关性。
+
+实际GUI startReceive沿原runReceive，session `4adb243d-e15b-484d-a863-c4a77486ef5c`，人工模式。一次性操作脚本传入B1AA/B2BB占位呼号，仅满足现有接收参数校验，未填入界面，不代表实际身份；原模拟未启动，未调用真实模型。FFmpeg PID3009、multimon PID3010存在；停止前/proc IO显示解码器rchar约2.84MB，与采集输出相符（IO计数并非精确PCM业务统计）。GUI出现`ISE SEE E HI H5TITE ... <ERR_6> ...`等零散文本，proposal=null。没有已知清晰CW作参照，不据乱码认定正确抄收或音频源已确证。
+
+沿原stop后，初次返回stopped=true但receiveState仍running（异步清理未完成）；随后state确认为stopped，ps确认两PID均消失。GUI留在停止结果供用户查看，无后台继续收音，无自动发送。正式旧JSONL SHA256仍d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac。
+
+保护/现场材料：`.local-backups/20261027-radio-rx/`含dirty-before.patch、MEMORY-before-listen.md、evidence-before-listen.md、listening-state.json、gui-state.json及gui-rx.mjs。本轮仅更新文档，无需产品测试或构建，不重复历史monitor/预检。准备阶段使用临时dialog返回路径并恢复原函数，不计原生选中文件通过。现场音频传输/GUI文字/停止释放有限通过；CW内容准确率、端到端信号归属、真实AI与自动收发未验证。当前等待用户确认扬声器听到的是清晰CW还是底噪/数字声，再定位有效信号，不能把本次文本当作有效通联。
+
+## 2026-10-23：CLI估算发送窗口与RX观测（限定交付）
+
+用户同意上轮候选后，Codex沿原runCwTrial/CwTrialSession落地显式--estimated-wpm，无新入口/进程/协议/依赖/schema。GUI真实发送禁用不变，未将GUI reply-wpm当成设备键速。真实设备/音频恢复未验收，不宣告自动收发或0.0完成。
+
+主链变化：复用既有signal/morse编码库和timeline，要求最终正文与规范文本完全一致，不支持字符直接拒绝，不静默折叠空白。估算速度6..48由操作人提供，不高于实际有效速度属于使用前提，程序不读取/设置键速。正文时间×1.25＋500ms后才开始RX观测；100ms采样，TX或超过300ms的响应空档重置600ms稳定窗。额外5秒预算也收紧最后一条查询超时。未曾起发也可能满足，estimated_rx_window及退出0仅为运行策略/命令流程，所有完成和物理停发仍UNKNOWN。参数进原intent/send_result detail，观察追加原send_result；启用时六行，默认仍原五行，未决阻断不变。
+
+Ctrl+C、调用者取消及输入关闭取消估算等待；若取消时查询在途，先等该查询成功/原超时，再走原停止/关闭，避免重叠查询。查询故障按原failSession锁定/关闭，随后停止可能unavailable或write_failed，不能承诺停止帧写出，更不能保证物理停发。保持原故障隔离，不在该增量重写设备生命周期。正常估算窗口后仍请求一次原停止；没有重发或自动解除intent。
+
+保护与对象：基线ad08541，开工已有上一轮四份文档dirty；`.local-backups/20261023-estimated-rx/dirty-before.patch`及source-before.tar保存相关源码/README/四文档，Harness非凭据profile亦已备份。修改源码仅apps/rig-cw-trial.ts、packages/cw-trial/src/session.ts；新增tests/cw-estimated-rx.test.ts，无用户文件覆盖。正式JSONL SHA256仍d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac。build产物未在本轮构建前单独归档，源码有上述可恢复基线；不将其描述为完整产物备份。
+
+验证记录（同目录日志）：
+- 首受影响测试tests.log 50/50（原runner45＋新增5），build.log通过。收紧观察查询预算/输入关闭取消后，tests-final.log为52/53：唯一失败是新增silent用例错误要求故障关闭后仍写出停止帧；修正为silent仅正文一帧、失败保留未决。没有改产品故障机制。
+- 仅重跑新增专项estimate-final.log为7/8：同一silent用例又过度限定stop outcome必须unavailable，实际关闭竞态也可能write_failed，二者均符合原会话语义；修正断言接受这两种失败，silent-final.log定向1/1通过。保留两次失败，不称全程一次全绿。
+- 后补“取消发生于RX查询在途”测试，query-cancel.log定向1/1，确认查询结算后才写一次停止。最终覆盖原45项及新增9项；原45项沿tests-final通过结果复用，不重复全套。覆盖估算/文本/参数、早期RX等待、TX重置、永TX/无应答、NG、等待中取消及输入关闭、在途取消、六事件/未决保留。
+- 产品最终源码build-final.log通过；之后仅改测试/文档，typecheck-final.log核对新增测试类型；diff --check通过。不跑无变化GUI构建/窗口、历史收音/模型/设备预检。
+
+DSH只读交叉审议60秒exit124，无最终报告，不计独立通过；推理过程中对在途取消可能导致pending阻止停止的疑问，Codex核对实际await查询后才抛取消，并新增定向用例通过，未据假设重构。无第二次审议。Codex已复核相对source-before的预期差异、调用接入、故障分支、记录不解除与文档限制。
+
+阶段检查：设计六项先写原任务；第一条原runner链50/50后检查取消/预算边界；发现silent预期错误保留失败并只定向修正；交付核对diff/正式hash/当前记忆。R01/R02/R04/R05/R06/R07/R09/R11/R12/R13在限定CLI/内存范围通过，R03原schema无变化、R08无新增权限接口；R10定向证据以上，硬件/实测速率/真实GUI未验证，独立DSH审议未完成。结论仅为CLI估算策略限定交付，无新候选发送路径或额外实施任务。
+
+下方为本次策略前的调查，限制沿用，“候选待批准”已由用户同意及本段实施替代。
+
+## 2026-10-23：真实CW结束判定补充调查
+
+本轮对象：原runCwTrial/CwTrialSession及新增外部资料。Codex调查与复核；复用[P2-008](P2-008-说明书发送证据调查.md)，不重查同一手册。产品代码未改，无设备操作。
+
+- Hamlib固定提交`2b5608a0a038dee3049206f40b1e4d30c6023680`：[IC-7300 caps](https://github.com/Hamlib/Hamlib/blob/2b5608a0a038dee3049206f40b1e4d30c6023680/rigs/icom/ic7300.c)使用icom_send_morse/icom_stop_morse/rig_wait_morse。[通用等待](https://github.com/Hamlib/Hamlib/blob/2b5608a0a038dee3049206f40b1e4d30c6023680/src/rig.c#L7660)先等200ms，再每轮查PTT并等50ms，首次OFF或loops超过600退出且返回OK；不是操作关联的CW队列清空证明。Full break-in间隙问题沿用P2-008，不将此结论泛化为Hamlib所有设备/版本无用。
+- [Icom固件1.42](https://www.icomjapan.com/support/firmware_driver/4102/)（2024-05-15）及[官方补充资料](https://www.icomjapan.com/support/manual/2188/)：1.42新增16 66 TX Inhibit及IC-PW2联动，未提供CW完成/停止凭据；补充文件含1.40/1.41等历史变更，已核对相关CI-V章节。IC-7300MK2不是本机型，不混用资料。直接PDF地址403，官方页面所列download API成功取回并pdftotext。
+- 原`packages/cw-trial/src/session.ts`的sendMessage/sendStop只有ack_observed；`apps/rig-cw-trial.ts`应答后模拟立即调用停止，真实分支等待TTY停止/退出。直接把GUI模拟参数换为真实可能截断电文，不能算接通自动发送。
+
+结论：本调查范围内不足以实现可靠整条发送完成判定，保持UNKNOWN和真实GUI禁用，不增加无真实实现的观察模块。最小候选是按最终正文/已知速度估算保守窗口再结合持续RX观测，须明确仅属运行策略、不能证明射频停发或自动解除intent；需与用户讨论后才实施。没有重开设备选型或增加另一发送链。
+
+保护：Git基线ad08541（修改前干净）；`.local-backups/20261023-tx-completion/docs-before.tar`包含修改前四份文档。下载文件在同目录，master初次下载与固定提交逐文件cmp一致。SHA256：ic7300.c=`a41d62a6112c28ace5e2d2235d282c49ebf5680b461a956f339d42e198b1a4f2`；icom.c=`fe27e196744a0b6bb8f3224470c8c273b25e545fbae3fff1cba9bee62726f29f`；rig.c=`5c85072fb8cbecb34622f719dd63d8fd2bbb4dd123c2360b1e4187576a1f5f92`；官方PDF=`4fcca913fe483593fe556164781d000e10a6393d21057f0f40cf7e91f6defc03`。
+
+DSH只读交叉审议exit0（45秒上限内完成，dsh-review.log），核对三个指定文件，认可限定结论；补充首次OFF也可能从未起发，且固件增量资料只能说明没有新增证据，不能推出全表不存在完成指示。Codex采纳上述边界，不扩大结论。Harness非凭据profile已先备份，无凭据读取。
+
+检查点：开工复用既有记忆/证据；发现缺少硬件完成依据后停止产品扩建；交付核对文档diff及外部源码，diff --check通过，正式JSONL SHA256仍为d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac，不跑构建/测试。R01/R02/R06/R11/R12/R13在本调查范围满足；R03/R04/R05/R07/R08/R09无产品变化、不适用；R10仅资料核对，设备行为仍未验证。真实自动回收及0.0不通过，文档调查收口。
+
 ## 2026-10-23：实时收报一轮模拟后恢复（限定交付）
 
 作者/复核Codex，DSH只读交叉审议。对象为`.local-backups/20261023-live-roundtrip/source-before.tar`到当前原receive、GUI和新专项；备份另含dirty、dist、非凭据profile，新增tests/live-roundtrip.test.ts及脚本此前不存在。没有变更正式JSONL或原runner代码。本段替代下方“实时模式禁止所有模拟”，其余旧证据仍有效。

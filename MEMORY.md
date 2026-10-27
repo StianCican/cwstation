@@ -1,6 +1,73 @@
 # CW Station 项目记忆
 
-更新日期：2026-10-23。
+更新日期：2026-10-27。
+
+## GitHub 同步快照（2026-10-27）
+
+- 用户要求上传当前最新成果，目标仍为原私有仓库 `StianCican/cwstation` 的 `main`，不发布版本、不改变产品范围。同步包含估算收尾、自定义短报文在途修改、专项测试及现场/解码诊断文档；自定义短报文仍未验收，不能用于真实发射，0.0未完成。
+- 修改前保护：`.local-backups/20261027-233923-github-sync/` 保存原差异、未跟踪文件归档、MEMORY副本和基线提交 `ad08541`。11个候选文件的常见凭据模式扫描无匹配，`git diff --check`通过；本轮仅同步，不重复产品测试或设备操作。运行账本、音频、构建产物、本地备份和外部multimon工作树不入库；解码器补丁仍保留在既有本地备份中，不能将本仓库快照视为已包含外部解码器修改。
+- 上传以推送成功并核对远端提交为准，本段只记录同步范围与验证边界。
+
+## 当前任务：CW 解码器质量修正（2026-10-27，接续）
+
+当前状态快照见[现场收发与解码状态](docs/evidence/2026-10-27-现场收发与解码状态.md)，MEMORY仍是唯一事实真源。
+
+- 用户现场确认：7.00993 MHz 附近 CW 人耳听得非常清晰；GUI 已沿既有 `runReceive → FFmpeg/RDPSource → 一个 multimon-ng → ReplySession` 主链运行过，但输出仍有大量错码。当前只允许接收诊断，未发射；GUI/CLI仍是唯一产品界面，fldigi只作后台算法研究，不接入其界面或XML-RPC发报面。
+- 已完成且不重复：读取既有事实清单、现场录音和旧解码输出；REA研究了本机 fldigi 4.2.10 的 CW 源码/证据（Evidence `ev_f952...`、`ev_cdaca...`、`ev_03cc...`、`ev_3bc...`，静态证据不等于运行验收），DSH定向审查记录在`.local-backups/20261027-decoder-fix/dsh-research.log`。现场样本 `.local-backups/20261027-cw-quality/radio-15s.s16le` 的主峰约530 Hz、SNR约13.5 dB，规则点约61..71 ms、划约188..193 ms；现有输出 `T N II T N RGER73<SK> E E E`，不能当作可靠抄收。
+- 已否决的候选：不把 `-x -o 2600 -d 65 -g 65 -y` 接入产品。该版本 `-o` 是幅度门限，不是频率选择；同一现场样本只得到 `RGES73<SK> E E E`，且不同固定门限随增益显著退化，不能作为通用现场档。440..620 Hz 简单带通也未改善，因噪声与CW能量同带；不新增第二条FFmpeg/解码链。
+- 根因证据（当前实现源码 `/home/li0214/DSH/tools/multimon-ng-v00-02/demod_morse.c`）：整流包络无目标音调选择；`AUTO_THRESHOLD_MULT=2/3` 绑定缓慢衰减的全局峰值，弱标记会被吞掉；初始 `SQUELCH=500` 无噪声底/迟滞，静音可产伪点划；固定 `-d/-g` 在未传`-y`时会被自动时序覆盖，固定`-o`在未传`-x`时会被自动门限覆盖。REA/DSH研究支持采用“目标音调/窄带 + 噪声底/迟滞 + 最小点宽 + 时序跟踪”的方向，但尚未改源码或验收。
+- 已实施最小修正：在同一 multimon-ng 1.6.2 工作树的 `demod_morse.c`/`multimon.h` 中加入噪声底跟踪、40%/28% 双门限迟滞、较快峰值衰减和最低信号裕量；未增加进程、协议、入口或GUI。补丁副本为 `.local-backups/20261027-decoder-fix/multimon-threshold-hysteresis.patch`，当前二进制 SHA256 为 `f68949c89f840b94c763dfb7d534746c1e5cedfbba2c5c7f872d0a2fa318f7ae`。
+- 定向结果：multimon 构建通过，内置5项 CTest 全部通过；`clean.wav`、`noisy.wav` 及既有 `cq-test.s16le`（补0.5秒尾静音）均完整输出 `CQ TEST`。现场录音输出变为 `T N T TE RGE A73<SK> E E E`，统计 `GLITCHES=0, FAILED=0, DECODED=15`；相对旧输出有改善迹象，但仍无人工真值，不能称可靠抄收，必须进行一次真实现场 GUI 接收观察。
+- 当前任务收敛为验证这一个补丁：重启/启动GUI前先确认旧FFmpeg/multimon已退出，沿原主链接收同一现场信号；若现场仍不能稳定抄收，再基于证据继续修该解码器，不引入固定参数档或第二解码器。未进行真实发射。
+- 现场复验（7.00960 MHz，2026-10-27）：重启GUI后沿同一音频主链运行约1分钟，FFmpeg与新 multimon 二进制均持续运行，PCM确实进入解码器，但 GUI 没有收到任何文本。停止后两个子进程均消失，最终 `receiveState=stopped`。记录在 `.local-backups/20261027-7m00960/receive-result.md`。该结果只证明采集/清理链路，不证明 RDPSource 中含有效CW，也不把空输出归因于单一算法根因。
+- 真实 TEST 受控试验（2026-10-27）：用户确认频率/模式/Break-in 后，`rig.sh --cw-trial --port COM17 --confirm-keying-off --message TEST --estimated-wpm 20` 预检通过（7.009600 MHz、CW、RX、BKIN、Split/RIT/XIT OFF）。正文与停止帧均收到 CI-V `0xfb` ACK，按20WPM完成2075ms估算窗口和≥600ms RX观察，记录正常关闭。`completion=unknown` 仍有效：ACK不证明整段RF完整辐射或物理键控已停止。发送记录追加至正式账本，最新SHA256 `ae11817de2b2ab0abe47d0d81449619b4101ed62ac7bf39c051d626f26e8b184`；未重复发送。
+- 用户随后现场确认实际听到了本次 `TEST` 的 CW 信号。该观察与设备 ACK、预检和停止记录共同证明本次测试确有可听 RF 输出；不把它推广为天线驻波、功率计读数或完整物理停发证明，也不重复发射。
+
+## 当前现场与任务（2026-10-27）
+
+- 用户再次强调人耳信号非常清晰，不能继续归因于用户调谐/弱信号或宣称已能抄手。对已保存样本的窄带包络诊断出现约65..75ms点、190..205ms划的规则片段；原自动统计dit49ms与该片段不一致，但固定-d65/-g55/-y仅得到RGE S73等，原音频/带通均未明显改善。因此时序偏差是线索，尚未证实根因，也没有把固定参数接入主链。保持当前频率，不让用户反复调台；当前交付缺口仍为可靠解码。修改前MEMORY-before-timing.md已保存。
+
+- 最新质量定位：用户报告7.00993 MHz CW声音非常清晰，原会话仍running。GUI出现反复JS1DEH、DE、CQ、5NN、73/SK样片，也有大量错码；这是部分可辨输出，尚非可靠抄收/真实呼号确认。Codex承认前述碎片不合格，当前唯一任务收敛为实际CW解码质量，不继续推进发送。
+- `.local-backups/20261027-cw-quality/`保存15秒RDPSource现场PCM（仅本地诊断，无上传）及原/带通离线输出：14.987s、RMS约2248、峰值7913、无削顶，主峰约530Hz。原解码输出T N II T N RGER73<SK> E E E；FFmpeg现有高低通440..620Hz后E S EE E S RGE R73<SK> E E E，未明显改善，不将此滤波接入产品。multimon统计TIMING_DIT49ms/GAP74ms、GLITCHES13；这些是算法估算，非实际对方码速证明。
+- 已查原解码器实现为全音频整流包络/自动阈值与时序，缺少目标音调选择；这可能受杂波/时序影响，尚未证明是唯一根因。现场530Hz与当前CW信号相符，但未做调谐相关性测量。无需让用户反复改频率或发报速度；保留现场样本进一步核对判码时序。未新增解码器/产品路径或修改参数，GUI继续人工接收，真实/模拟发送均未触发。MEMORY修改前副本在该诊断目录。
+
+- 最新正在运行：用户经RF/SQL向左调整已恢复扬声器声音，之后在7.00810 MHz CW报告听到电码；用户问是否开始时核对发现上一轮仍stopped，未冒称已启动。原GUI停止为终态，直接再启动被原接口拒绝（零采集），随后保存前状态、重开原GUI并复用原配置，session 9391c0f0-c6fe-4c8f-a75a-2ebeb058b8ff实际running，FFmpeg PID3955、multimon PID3956。当前留在人工接收，不自动发送；最长一小时预算沿用。
+- 新接收文本仍有ERR及碎片，未验收内容准确性；出现B2BB DE B1AA K为mock配置使用占位呼号生成的演示提案（UI source=ai仅为原事件标签），不是真实模型判断/对端身份，不可据此发报，simulation仍idle。原Windows默认输入/WSLg转接的来源相关性尚未独立证实。正式JSONL SHA256仍未变，无控制串口或发射。
+- 本次备份`.local-backups/20261027-cw700810/`保存MEMORY-before.md、dirty-before.patch、prior-state.json（上一会话）、原操作脚本副本、gui-before.json及gui-state.json。下一步只围绕该真实信号的有效抄收定位输入/音调，不重做历史预检。下方首次收音已停止为历史状态，当前以本段为准。
+
+- 最新实收增量：用户确认Windows已选择USB Audio CODEC后，原GUI startReceive→runReceive→FFmpeg pulse/RDPSource→既有multimon-ng运行，session 4adb243d-e15b-484d-a863-c4a77486ef5c；采集PID3009、解码PID3010，约2.8MB字节流进入解码进程，GUI出现零散文本及ERR标记。仅证明有输入/解码输出，不是清晰CW内容准确验收；Windows默认设备由用户确认，电台音频来源仍缺信号相关性验证。此次进程内收音使用B1AA/B2BB占位参数（没有填入界面），不代表实际呼号，不发射；mock配置无有效提案，simulation始终idle。
+- 已经主动停止并确认receiveState=stopped、两PID消失；GUI保留实际乱码供查看，不继续后台收音。当前唯一任务是确认扬声器有无清晰CW并定位信号，再补有意义的抄收；已异步询问用户听到CW/底噪数字声/无声音，待答。未重建解码链/修改产品/重复旧预检，不把噪声字符当通联成功。
+- 本轮保护为同目录MEMORY-before-listen.md、evidence-before-listen.md（在本次文档写入前保存）；listening-state.json/gui-state.json和一次性脚本记录运行/停止。正式JSONL SHA256仍未变，无串口命令、发射或记录解除。以下“未启动/待选择输入”是准备阶段，已由本段替代。
+
+- 用户现场补充：CW、KEY SPEED 20 WPM、CW PITCH 600 Hz、RF POWER 6%；频率用户写14.098.58，14.09858 MHz尚待屏幕核对。用户纠正为朋友两天前用此端馈做过SSB，非已提供驻波测量结果，不把它写成当前驻波已验收。
+- 本轮用户批准接收操作：已打开原WSL Electron GUI并配置原/usr/bin/ffmpeg、既有multimon-ng二进制、pulse/RDPSource及既有mock回复配置，未启动收音/模型/模拟发送。Windows USB Audio CODEC输入/输出端点存在；WSLg只暴露RDPSource默认麦克风，需要用户先在Windows声音输入中选中USB Audio CODEC，已询问、待答；不能把RDPSource存在当成电台音频已接通。呼号未代填至界面，当前无通联提案。
+- 未修改产品代码/构建/驱动/设备设置，没有重跑旧预检。原生文件路径由此次测试进程临时dialog返回适配配置，配置后立即恢复原函数，不计原生选择器验收。GUI仍可正常操作，未自行开始录音。现场脚本首次因顶层await语法失败、无配置变化；仅修一次脚本后配置成功，保留原脚本副本。准备不等于接收验收通过。
+- 本轮保护`.local-backups/20261027-radio-rx/`保存dirty-before.patch、MEMORY-before.md、evidence-before.md、GUI原状态及一次性操作脚本；下一步等待默认音频输入确认，再沿原startReceive收音、记录实际解码/清理结果。尚未接收电台音频、未证明CW解码效果。
+
+- 用户明确报告电台已连接、端馈天线已接好，可以发射；替代历史“无天线/不能现场发射”的当前条件，历史验收范围不改写。不将现场就绪等同于已批准具体频率/正文的一次发射。
+- 本轮仅Windows设备枚举，未打开串口/发射：COM17为Silicon Labs CP210x USB to UART Bridge；USB Audio CODEC输入/输出端点均Status OK。设备存在不等于实际音频/CI-V新一轮验收。Linux进程列表未见rig-controld/rig-launch/multimon/ffmpeg运行，Windows进程归属尚未核对。
+- 正式旧intent仍为2026-10-14的E，JSONL六行、SHA256 d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac，未解除/改写。下一步沿既有音频接收路径做电台实际输入；实际发射前核对频率/键速/功率及操作人核查事实，仍使用原TTY确认，不代填核查。
+- 保护：开工确认已有上一轮源码/文档修改；`.local-backups/20261027-radio-connected/dirty-before.patch`及MEMORY-before.md保存修改前现场。本轮只更新此记忆，不重跑旧预检/产品测试。
+
+下方2026-10-23增量仍是软件能力基线，当前设备条件以本段为准。
+
+## 当前限定交付：估算发送窗口与RX观测（2026-10-23）
+
+- 用户已同意调查后的估算运行策略，替代下文“尚未批准实施”。原CLI/runCwTrial新增显式--estimated-wpm 6..48；同一CwTrialSession复用现有Morse库/时间轴与1C00查询。最终正文严格匹配、不静默规范化；未知速度/不支持字符不进入该估算策略。速度是操作人提供的假设，不读取/设置设备键速，不借用GUI reply-wpm冒充实际速度。
+- 发送ACK后等待正文理论时长×1.25＋500ms，再每100ms采样RX，满足600ms且观测间隔不超过300ms才返回estimated_rx_window；TX/观测空档重置，额外5秒预算约束单项查询。结果始终completion=unknown，未证明起发或物理停发。随后沿原停止/关闭；Ctrl+C/取消/输入关闭中止，查询失败沿原锁定/关闭，停止可能unavailable/write_failed，绝不声称停止成功。
+- 当前范围：CLI显式opt-in已接原实际调用链，默认原行为不变；沿原intent/send_result detail记录参数/观测，无新协议/schema/进程/依赖/发送器。GUI真实发送继续关闭，收报一轮模拟恢复仍沿用历史证据，不宣称真实自动回收或连续QSO完成；旧intent不解除。
+- 验证/审议与限制见04-A GUI证据新增段。本轮仅隔离内存transport，无设备/天线/付费模型；未重复音频/GUI/旧预检。DSH只读审议60秒exit124，无最终报告，不计独立通过；Codex复核原diff、定向测试与故障关闭边界。0.0未完成，下一必要缺口是有现场条件时核对实际键速/物理音频与收发时序，不能据估算开放真实GUI。
+- 保护：Git基线ad08541；开工已有上一轮四份文档修改，先保存`.local-backups/20261023-estimated-rx/dirty-before.patch`及`source-before.tar`（目标源码/README/四文档）。正式JSONL SHA256仍d1de5f1e6894078dd9ab630f27e2cf6227bce9635acbd0e036a79fb0cc3438ac。未推送或修改现场记录。
+
+## 已完成调查：真实CW结束判定（2026-10-23）
+
+- 用户批准调查发完/停止后恢复接收。已复用P2-008的10月14日手册结论，只补Hamlib固定提交和IC-7300官方1.42补充资料；没有重跑旧预检、音频/GUI验收，没有连接设备或发射。
+- 结果：该Hamlib实现用PTT轮询等待CW，首次OFF或轮询上限后都返回OK，不能作为整条CW完成凭据；官方1.42新增16 66 TX Inhibit，不是队列完成信号。限定调查内仍无可靠完成/停发依据，不推断所有方案均不可能。
+- 原模拟在sendMessage应答后立即请求停止；真实分支仍为TTY停止/退出、结果UNKNOWN。不能直接将GUI模拟切为真实发送；本轮未改产品代码、未解除正式旧intent，0.0未完成。
+- 当时提出的“确切正文/已知速度的保守发送窗口＋持续RX观测”已获用户同意并按顶部CLI范围实现；它仍不是硬件完成/射频停发证明，不自动解除intent。
+- 证据见04-A GUI证据顶部。保护：修改前工作区干净，Git基线ad0854185294d6e69d396f4d9ebd204a8e288a7c；`.local-backups/20261023-tx-completion/docs-before.tar`保存四份原文档，新资料与审议日志在同目录。本轮仅文档，不运行产品测试或构建。
+
+下方为已完成增量；其下一步由本段调查结果补充，不重复开工。
 
 ## GitHub 同步任务（2026-10-23）
 

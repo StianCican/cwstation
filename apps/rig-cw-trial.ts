@@ -14,7 +14,7 @@ import {
   createCwTrialSimulatorTransport,
   cwTrialContextEquals,
   evaluateCwTrialPreflight,
-  CW_TRIAL_MESSAGES,
+  estimateCwTrialWindow,
   cwTrialIntentDigest,
   type CwTrialContext,
   type CwTrialMessage,
@@ -26,8 +26,9 @@ import { openCwTrialSerialTransport } from "../packages/devices/src/serial.js";
 import type { ReplyDispatchControl, ReplyDispatchLease } from "./reply-dispatch-control.js";
 
 export const CW_TRIAL_USAGE =
-  "rig-controld --cw-trial --simulate [--message E|TEST] [--simulate-confirm E|TEST] [--simulate-ack ok|ng|none] [--record-dir <dir>]\n" +
-  "       rig-controld --cw-trial --port <COMx> --confirm-keying-off [--message E|TEST] [--record-dir <dir>] [--timeout-ms N]\n" +
+  "rig-controld --cw-trial --simulate [--message <SHORT-CW>] [--simulate-confirm <SHORT-CW>] [--simulate-ack ok|ng|none] [--record-dir <dir>]\n" +
+  "       rig-controld --cw-trial --port <COMx> --confirm-keying-off [--message <SHORT-CW>] [--record-dir <dir>] [--timeout-ms N]\n" +
+  "       optional send policy: --estimated-wpm <6..48> (operator estimate, not completion proof)\n" +
   "       rig-controld --cw-trial --review-intent <id> --operator <name> --note <basis> [--record-dir <dir>] (TTY; no transport)";
 
 const DEFAULT_RECORD_DIR = "logs/cw-trial";
@@ -40,6 +41,7 @@ export interface CwTrialCliOptions {
   readonly message: CwTrialMessage;
   readonly recordDir: string;
   readonly timeoutMs: number;
+  readonly estimatedWpm: number | null;
   readonly simulateConfirm: string | null;
   readonly simulateAck: "ok" | "ng" | "none";
   readonly help: boolean;
@@ -54,6 +56,7 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
     "--message",
     "--record-dir",
     "--timeout-ms",
+    "--estimated-wpm",
     "--simulate-confirm",
     "--simulate-ack",
     "--help",
@@ -65,6 +68,7 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
   let message = "E";
   let recordDir = DEFAULT_RECORD_DIR;
   let timeoutMs = DEFAULT_TIMEOUT_MS;
+  let estimatedWpm: number | null = null;
   let simulateConfirm: string | null = null;
   let simulateAck: "ok" | "ng" | "none" = "ok";
   let help = false;
@@ -93,9 +97,8 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
     if (flag === "--port") port = value;
     else if (flag === "--record-dir") recordDir = value;
     else if (flag === "--message") {
-      if (!(CW_TRIAL_MESSAGES as readonly string[]).includes(value)) {
-        throw new Error(`--cw-trial: message must be E or TEST, got ${value}`);
-      }
+      const invalid = validateCwText(value);
+      if (invalid !== null) throw new Error(`--cw-trial: invalid message: ${invalid}`);
       message = value;
     } else if (flag === "--timeout-ms") {
       if (!/^\d+$/.test(value)) throw new Error("--cw-trial: --timeout-ms must be an integer");
@@ -103,6 +106,11 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
       if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000) {
         throw new Error("--cw-trial: --timeout-ms must be 1..60000");
       }
+    } else if (flag === "--estimated-wpm") {
+      if (!/^\d+$/.test(value) || Number(value) < 6 || Number(value) > 48) {
+        throw new Error("--cw-trial: --estimated-wpm must be an integer in 6..48");
+      }
+      estimatedWpm = Number(value);
     } else if (flag === "--simulate-confirm") simulateConfirm = value;
     else {
       if (value !== "ok" && value !== "ng" && value !== "none") {
@@ -114,7 +122,7 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
 
   if (help) {
     return { simulate, port, confirmKeyingOff, message: message as CwTrialMessage, recordDir, timeoutMs,
-      simulateConfirm, simulateAck, help };
+      simulateConfirm, simulateAck, estimatedWpm, help };
   }
   if (simulate) {
     if (port !== null || confirmKeyingOff) {
@@ -127,7 +135,7 @@ export function parseCwTrialArgs(argv: readonly string[]): CwTrialCliOptions {
     }
   }
   return { simulate, port, confirmKeyingOff, message: message as CwTrialMessage, recordDir, timeoutMs,
-    simulateConfirm, simulateAck, help };
+    simulateConfirm, simulateAck, estimatedWpm, help };
 }
 
 export interface CwTrialIo {
@@ -415,6 +423,8 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
   process.on("SIGINT", onSigint); process.on("SIGTERM", onSigterm);
   deps.signal?.addEventListener("abort", onExternalAbort, { once: true });
   if (deps.signal?.aborted) onExternalAbort();
+  io.signal?.addEventListener("abort", onExternalAbort, { once: true });
+  if (io.signal?.aborted) onExternalAbort();
   deps.replyDispatch?.signal.addEventListener("abort", onDispatchStop, { once: true });
   if (deps.replyDispatch?.signal.aborted) onDispatchStop();
 
@@ -565,12 +575,17 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       return 5;
     }
 
+    // Validate the exact final (possibly edited) message before recording or sending.
+    const estimatedWindowMs = options.estimatedWpm === null ? null
+      : estimateCwTrialWindow(messageText, options.estimatedWpm);
+    const estimateDetail = estimatedWindowMs === null ? ""
+      : `; estimatedWpm=${options.estimatedWpm}; estimatedWindowMs=${estimatedWindowMs}; completion=unknown`;
     // 写前持久化意图并 fsync；失败即不发送。
     await store.append({
       event: "intent",
       message: recordMessage,
       contextFingerprint: fingerprint,
-      detail: `frame ${civPlanHex(planCivCwMessage(messageText))}${replyDetail}`,
+      detail: `frame ${civPlanHex(planCivCwMessage(messageText))}${replyDetail}${estimateDetail}`,
     });
     checkInterrupted();
     checkAutomatic("intent flush");
@@ -598,13 +613,28 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
         event: "send_result",
         message: recordMessage,
         contextFingerprint: fingerprint,
-        detail: `outcome=${send.outcome}; ${send.detail}${replyDetail}`,
+        detail: `outcome=${send.outcome}; ${send.detail}${replyDetail}${estimateDetail}`,
       });
     } catch (error) {
       io.write(`cw-trial: send result record failed: ${message(error)}`);
       throw error;
     }
 
+    if (options.estimatedWpm !== null && acknowledged) {
+      io.write(`cw-trial: estimated handoff waiting ${estimatedWindowMs}ms then sampled RX; completion remains unknown`);
+      // Own cancellation signal covers UI stop, SIGINT/SIGTERM and input closure.
+      const cancelEstimate = new AbortController();
+      void interrupted.catch(error => cancelEstimate.abort(error));
+      checkInterrupted();
+      const observation = await session.waitEstimatedReceiveWindow(messageText, options.estimatedWpm, cancelEstimate.signal);
+      checkInterrupted();
+      io.write(`cw-trial: ${observation.outcome}; ${observation.detail}`);
+      await store.append({ event: "send_result", message: recordMessage,
+        contextFingerprint: fingerprint,
+        detail: `outcome=${send.outcome}; handoff=${observation.outcome}; completion=unknown; ${observation.detail}${replyDetail}` });
+      await requestStop();
+      return stopRecordFailed ? 1 : !acknowledged ? 7 : observation.outcome === "estimated_rx_window" ? 0 : 7;
+    }
     if (options.simulate) {
       await requestStop();
     } else {
@@ -650,6 +680,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
   } finally {
     process.off("SIGINT", onSigint); process.off("SIGTERM", onSigterm);
     deps.signal?.removeEventListener("abort", onExternalAbort);
+    io.signal?.removeEventListener("abort", onExternalAbort);
     deps.replyDispatch?.signal.removeEventListener("abort", onDispatchStop);
     if (automaticLease !== undefined && !automaticConsumed) deps.replyDispatch?.revoke();
     let cleanupExit: number | undefined;

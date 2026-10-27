@@ -29,6 +29,8 @@ bash rig.sh --cw-trial --simulate --simulate-confirm E --record-dir logs/cw-tria
 
 流程：八查询预检 → 人工确认（模拟为显式simulate-confirm）→ 重读核对 → intent刷盘 → 一次E/TEST → 停止请求 → 退出释放。`scripts/cw-trial.sh`仅作为此入口的兼容转发。真实设备仍需现场单独授权、显式端口与keying-off确认及交互TTY，本次整顿不执行真实试验。
 
+可选`--estimated-wpm <6..48>`沿同一runner增加估算收尾：收到发送应答后，按最终正文复用现有Morse时间轴，等待估算时长×1.25＋500ms，再每100ms观察RX，连续采样满足600ms后请求原停止并退出。额外观察上限5秒，TX/超过300ms的观测空档重置稳定窗；超时/异常非零退出，Ctrl+C取消等待并走原停止/关闭（在途查询最多等待原查询超时）。查询失败仍按原规则锁定/关闭会话，此时停止可能unavailable，不能保证停止帧写出或电台停发。速度由操作人提供，应不高于实际有效键速；程序未读取或设置电台速度，系数/余量未做硬件校准。此项结果始终标为`completion=unknown`，不能证明起发、整条完成或物理停发，不自动解除intent。开启时原记录追加一条send_result保存估算观测，无新schema；默认不启用，不改变GUI真实发送禁用状态。
+
 退出0仅表示命令流程观察到应答且清理完成，不能证明报文完成或物理停发；退出6表示关闭未确认，7表示发送/停止未观察到应答，其他非零值表示拒绝或失败。intent默认阻断，不得换目录或删除记录绕过。现阶段是单次受控试验，不是自动连续操作系统。
 
 ### 显式人工核查历史 intent
@@ -48,6 +50,8 @@ bash rig.sh --cw-trial --review-intent "<intent-id>" --operator "<name>" --note 
 ## 接收 CW 解码文本（V00-02-D，文件/PCM 或 FFmpeg 实时音频）
 
 当前生产调用链为 `cwrig receive → apps/rig-receive.ts → packages/receive →（实时音频时一个 FFmpeg 采集子进程）→ 一个 multimon-ng 子进程`。用户只操作本项目 CLI；解码器在后台以固定参数 `-q -c -a MORSE_CW -t raw -` 运行，不启动/关闭完整 fldigi GUI，也不暴露任意解码器参数、网络服务或设备控制。旧的 fldigi XML-RPC 客户端源码与历史证据保留但已冻结，`--endpoint`/`--once`/`--interval-ms` 会以退出码 2 明确拒绝。
+
+2026-10-27 已在同一 multimon-ng 解码器实现中加入噪声底跟踪和迟滞门限；`-x -o 2600 -d 65 -g 65 -y` 仍因单样本退化和增益敏感而否决。新二进制已通过 multimon CTest 5/5，并在既有 clean/noisy/CQ TEST 样本上完整解出 `CQ TEST`；现场录音仍需人工真值和 GUI 实收确认，暂不宣称可靠抄收。证据见 [V00-02-E](docs/evidence/V00-02-E-CW解码质量诊断.md) 和 `MEMORY.md` 顶部。
 
 输入两种模式严格互斥，且必须显式选择一种：
 

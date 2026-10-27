@@ -11,6 +11,9 @@
 //    通过 openCwTrialSerialTransport 注入。
 
 import { createHash, randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
+import { encodeCwText, normalizeCwText } from "../../signal/src/morse.js";
+import { buildTimeline } from "../../signal/src/timeline.js";
 import {
   CIV_COMMAND_NG,
   CIV_COMMAND_OK,
@@ -46,9 +49,28 @@ import { planCivCwMessage, planCivCwStop } from "../../devices/src/civ-tx-plan.j
 export const CW_TRIAL_QUERY_TIMEOUT_MS = 2_000;
 export const CW_TRIAL_CLOSE_TIMEOUT_MS = 2_000;
 
+/** An operating estimate only; the caller supplies a speed no faster than the radio. */
+export function estimateCwTrialWindow(message: string, wpm: number): number {
+  planCivCwMessage(message);
+  if (!Number.isInteger(wpm) || wpm < 6 || wpm > 48) {
+    throw new CivConfigError("estimated WPM must be an integer in 6..48");
+  }
+  if (normalizeCwText(message) !== message) {
+    throw new CivConfigError("estimated window requires exact normalized uppercase text");
+  }
+  const timeline = buildTimeline(encodeCwText(message), 8000, wpm);
+  return Math.ceil(timeline.exactDurationSeconds * 1250) + 500;
+}
+
+export interface CwTrialReceiveWindow {
+  readonly outcome: "estimated_rx_window" | "observation_timeout";
+  readonly completion: "unknown";
+  readonly detail: string;
+}
+
 /** 唯一允许的两次真实短报文；"^" 连续键控不在其中。 */
 export const CW_TRIAL_MESSAGES = Object.freeze(["E", "TEST"] as const);
-export type CwTrialMessage = (typeof CW_TRIAL_MESSAGES)[number];
+export type CwTrialMessage = string;
 
 const CONTEXT_ORDER: readonly ContextReadKind[] = Object.freeze<ContextReadKind[]>([
   "txFrequency",
@@ -325,6 +347,7 @@ export class CwTrialSession {
   private closeConfirmed = false;
   private contextRead = false;
   private messageAttempted = false;
+  private acknowledgedMessage: string | null = null;
   private stopAttempted = false;
   private context: CwTrialContext | null = null;
   private pending: PendingQuery | null = null;
@@ -439,6 +462,7 @@ export class CwTrialSession {
     this.phase = "sent";
     const ack = await this.performAck("command 17 message", Uint8Array.from(plan.bytes));
     if (ack.kind === "ok") {
+      this.acknowledgedMessage = message;
       return {
         message,
         outcome: "ack_observed",
@@ -494,6 +518,44 @@ export class CwTrialSession {
     };
   }
 
+  /** Sampled RX after an estimated duration permits operational handoff only.
+   * It neither proves that TX started nor that a CW buffer is empty. */
+  async waitEstimatedReceiveWindow(message: string, wpm: number, signal?: AbortSignal): Promise<CwTrialReceiveWindow> {
+    if (this.acknowledgedMessage !== message || this.stopAttempted || this.phase !== "sent") {
+      throw new CivSessionError("estimated RX window requires an unstopped send attempt");
+    }
+    const minimumMs = estimateCwTrialWindow(message, wpm);
+    await delay(minimumMs, undefined, { signal });
+    const deadline = performance.now() + 5_000;
+    let rxSince: number | null = null;
+    let previousSampleAt: number | null = null;
+    const plan = planContextRead("txStatus");
+    while (performance.now() < deadline) {
+      signal?.throwIfAborted();
+      if (this.stopAttempted || this.phase !== "sent") throw new CivSessionError("RX observation interrupted by stop/close");
+      const reading = await this.performRead("estimated RX observation", Uint8Array.from(plan.bytes), 0x1c,
+        frame => decodeContextReadResponse("txStatus", frame),
+        Math.max(1, Math.min(this.queryTimeoutMs, Math.ceil(deadline - performance.now()))));
+      signal?.throwIfAborted();
+      if (this.stopAttempted || this.phase !== "sent") throw new CivSessionError("RX observation interrupted by stop/close");
+      const sampledAt = performance.now();
+      if (sampledAt >= deadline) break;
+      // A delayed response is a gap in evidence, not continuous RX observation.
+      if (previousSampleAt !== null && sampledAt - previousSampleAt > 300) rxSince = null;
+      previousSampleAt = sampledAt;
+      if (reading?.kind === "txStatus" && reading.status === "RX") {
+        rxSince ??= sampledAt;
+        if (sampledAt - rxSince >= 600) {
+          return { outcome: "estimated_rx_window", completion: "unknown",
+            detail: `estimated window=${minimumMs}ms at ${wpm}WPM then sampled RX for >=600ms; TX start, message completion and physical stop remain unknown` };
+        }
+      } else rxSince = null;
+      await delay(100, undefined, { signal });
+    }
+    return { outcome: "observation_timeout", completion: "unknown",
+      detail: "no stable sampled RX window within 5000ms after estimate; completion and physical stop remain unknown" };
+  }
+
   view(): CwTrialSessionView {
     return {
       sessionInstanceId: this.sessionInstanceId,
@@ -531,6 +593,7 @@ export class CwTrialSession {
     request: Uint8Array,
     command: number,
     decode: (frame: CivFrame) => T | null,
+    timeoutMs = this.queryTimeoutMs,
   ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const unavailable = this.readableError();
@@ -546,8 +609,8 @@ export class CwTrialSession {
       const timer = setTimeout(() => {
         const pending = this.pending;
         if (pending === null || pending.id !== id) return;
-        this.failSession(new CivTimeoutError(`CW trial ${label} timed out after ${this.queryTimeoutMs} ms`));
-      }, this.queryTimeoutMs);
+        this.failSession(new CivTimeoutError(`CW trial ${label} timed out after ${timeoutMs} ms`));
+      }, timeoutMs);
       this.pending = {
         id,
         mode: "read",

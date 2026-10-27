@@ -33,7 +33,7 @@ export interface CwTrialIntentReview {
 
 export interface CwTrialRecordInput {
   readonly event: CwTrialRecordEvent;
-  readonly message?: "E" | "TEST" | null;
+  readonly message?: string | null;
   readonly contextFingerprint?: string | null;
   readonly detail?: string | null;
 }
@@ -44,7 +44,7 @@ export interface CwTrialRecord {
   readonly sessionId: string;
   readonly at: string;
   readonly event: CwTrialRecordEvent | "intent_review";
-  readonly message: "E" | "TEST" | null;
+  readonly message: string | null;
   readonly contextFingerprint: string | null;
   readonly detail: string | null;
   readonly review?: CwTrialIntentReview;
@@ -100,7 +100,7 @@ function parseRecord(line: string): CwTrialRecord | null {
       operator: item.operator as string, note: item.note as string };
   }
   const message = raw.message;
-  if (message !== null && message !== "E" && message !== "TEST") return null;
+  if (message !== null && !validMessageText(message, 30)) return null;
   const fingerprint = raw.contextFingerprint;
   if (fingerprint !== null && typeof fingerprint !== "string") return null;
   const detail = raw.detail;
@@ -111,7 +111,7 @@ function parseRecord(line: string): CwTrialRecord | null {
     sessionId: raw.sessionId,
     at: raw.at,
     event: raw.event as CwTrialRecord["event"],
-    message: message as "E" | "TEST" | null,
+    message: message as string | null,
     contextFingerprint: fingerprint as string | null,
     detail: detail as string | null,
     ...(review === undefined ? {} : { review }),
@@ -121,6 +121,11 @@ function parseRecord(line: string): CwTrialRecord | null {
 function validReviewText(value: unknown, max: number): value is string {
   return typeof value === "string" && value === value.trim() && value.length > 0
     && value.length <= max && !/[\x00-\x1f\x7f]/.test(value);
+}
+
+function validMessageText(value: unknown, max: number): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= max
+    && value === value.trim() && !/[\x00-\x1f\x7f]/.test(value);
 }
 
 function pendingIntents(scan: CwTrialRecordScan): CwTrialRecord[] {
