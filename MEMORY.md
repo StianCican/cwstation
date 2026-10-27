@@ -1,6 +1,10 @@
 # CW Station 项目记忆
 
-更新日期：2026-10-27。
+更新日期：2026-10-28。
+
+## 解码器补丁补充入库（2026-10-28）
+
+用户要求补传外部 multimon-ng 改动，已将与原工作树一致的补丁、精确上游提交、许可证及构建说明纳入 `patches/multimon-ng/`。此前“补丁仅本机”的说明为历史状态，由本条替代。保护基线 `1496a96`（开始时工作区干净），原文档副本位于 `.local-backups/20261028-000856-decoder-patch-upload/`。只补齐现有成果的可复现材料，不改产品主链、进程、协议、记录格式或当前解码质量未验收状态；不连接设备。上传完成以远端提交核对为准。 本轮隔离应用检查通过，补丁生成文件与当前外部源码一致，Release构建通过、CTest 5/5（主要为FLEX，不构成CW质量验收）。
 
 ## GitHub 可见性更新（2026-10-27）
 
@@ -20,7 +24,7 @@
 - 已完成且不重复：读取既有事实清单、现场录音和旧解码输出；REA研究了本机 fldigi 4.2.10 的 CW 源码/证据（Evidence `ev_f952...`、`ev_cdaca...`、`ev_03cc...`、`ev_3bc...`，静态证据不等于运行验收），DSH定向审查记录在`.local-backups/20261027-decoder-fix/dsh-research.log`。现场样本 `.local-backups/20261027-cw-quality/radio-15s.s16le` 的主峰约530 Hz、SNR约13.5 dB，规则点约61..71 ms、划约188..193 ms；现有输出 `T N II T N RGER73<SK> E E E`，不能当作可靠抄收。
 - 已否决的候选：不把 `-x -o 2600 -d 65 -g 65 -y` 接入产品。该版本 `-o` 是幅度门限，不是频率选择；同一现场样本只得到 `RGES73<SK> E E E`，且不同固定门限随增益显著退化，不能作为通用现场档。440..620 Hz 简单带通也未改善，因噪声与CW能量同带；不新增第二条FFmpeg/解码链。
 - 根因证据（当前实现源码 `/home/li0214/DSH/tools/multimon-ng-v00-02/demod_morse.c`）：整流包络无目标音调选择；`AUTO_THRESHOLD_MULT=2/3` 绑定缓慢衰减的全局峰值，弱标记会被吞掉；初始 `SQUELCH=500` 无噪声底/迟滞，静音可产伪点划；固定 `-d/-g` 在未传`-y`时会被自动时序覆盖，固定`-o`在未传`-x`时会被自动门限覆盖。REA/DSH研究支持采用“目标音调/窄带 + 噪声底/迟滞 + 最小点宽 + 时序跟踪”的方向，但尚未改源码或验收。
-- 已实施最小修正：在同一 multimon-ng 1.6.2 工作树的 `demod_morse.c`/`multimon.h` 中加入噪声底跟踪、40%/28% 双门限迟滞、较快峰值衰减和最低信号裕量；未增加进程、协议、入口或GUI。补丁副本为 `.local-backups/20261027-decoder-fix/multimon-threshold-hysteresis.patch`，当前二进制 SHA256 为 `f68949c89f840b94c763dfb7d534746c1e5cedfbba2c5c7f872d0a2fa318f7ae`。
+- 已实施最小修正：在同一 multimon-ng 1.6.2 工作树的 `demod_morse.c`/`multimon.h` 中加入噪声底跟踪、40%/28% 双门限迟滞、较快峰值衰减和最低信号裕量；未增加进程、协议、入口或GUI。补丁副本为 `patches/multimon-ng/multimon-threshold-hysteresis.patch`（原本地副本保留），当前二进制 SHA256 为 `f68949c89f840b94c763dfb7d534746c1e5cedfbba2c5c7f872d0a2fa318f7ae`。
 - 定向结果：multimon 构建通过，内置5项 CTest 全部通过；`clean.wav`、`noisy.wav` 及既有 `cq-test.s16le`（补0.5秒尾静音）均完整输出 `CQ TEST`。现场录音输出变为 `T N T TE RGE A73<SK> E E E`，统计 `GLITCHES=0, FAILED=0, DECODED=15`；相对旧输出有改善迹象，但仍无人工真值，不能称可靠抄收，必须进行一次真实现场 GUI 接收观察。
 - 当前任务收敛为验证这一个补丁：重启/启动GUI前先确认旧FFmpeg/multimon已退出，沿原主链接收同一现场信号；若现场仍不能稳定抄收，再基于证据继续修该解码器，不引入固定参数档或第二解码器。未进行真实发射。
 - 现场复验（7.00960 MHz，2026-10-27）：重启GUI后沿同一音频主链运行约1分钟，FFmpeg与新 multimon 二进制均持续运行，PCM确实进入解码器，但 GUI 没有收到任何文本。停止后两个子进程均消失，最终 `receiveState=stopped`。记录在 `.local-backups/20261027-7m00960/receive-result.md`。该结果只证明采集/清理链路，不证明 RDPSource 中含有效CW，也不把空输出归因于单一算法根因。
