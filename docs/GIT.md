@@ -1,5 +1,7 @@
 # 本地 Git 与恢复基线
 
+当前可见性：2026-10-27按用户明确要求，原 `StianCican/cwstation` 仓库已转为公开，GitHub查询确认PUBLIC；下方私有描述保留为首次上传历史。
+
 ## GitHub 上传（2026-10-23）
 
 用户要求上传至StianCican账号。目标仓库为`https://github.com/StianCican/cwstation`，默认私有，沿现有main及完整历史，不做0.0发布或标签。当前推送状态以MEMORY顶部为准；本地提交不等于远端上传成功。
