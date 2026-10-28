@@ -163,3 +163,54 @@ test("cancellation during an in-flight RX query settles that query before the or
   assert.match(output.join("\n"), /stop outcome=ack_observed/);
   assert.doesNotMatch(output.join("\n"), /estimated_rx_window/);
 });
+
+
+test("transport loss cancels a long estimate immediately and persists its first cause without resending", async t => {
+  const directory = await mkdtemp(join(tmpdir(), "cw-estimated-disconnect-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const transport = createCwTrialSimulatorTransport({ chunkSize: 64, echo: false });
+  let lost: ((error?: Error) => void) | undefined;
+  const wrapped: CivTransport = {
+    write: bytes => transport.write(bytes), close: () => transport.close(),
+    onData: listener => transport.onData(listener),
+    onClose: listener => { lost = listener; return transport.onClose(listener); },
+  };
+  const output: string[] = [];
+  let waitingAt = 0;
+  const result = await runCwTrial(["--simulate", "--message", "CQ CQ DE BG2GZA K",
+    "--simulate-confirm", "CQ CQ DE BG2GZA K", "--estimated-wpm", "20", "--record-dir", directory], {
+    createTransport: async () => wrapped,
+    io: { isTTY: false, prompt: async () => "", write: line => {
+      output.push(line);
+      if (line.includes("estimated handoff waiting")) {
+        waitingAt = performance.now();
+        setTimeout(() => lost?.(new Error("USB DEVICE REMOVED fixture")), 20);
+      }
+    } },
+  });
+  assert.equal(result, 1);
+  assert.ok(waitingAt > 0);
+  assert.ok(performance.now() - waitingAt < 1000, "must not wait 13.625s after device loss");
+  assert.match(output.join("\n"), /failed: CW trial transport closed: USB DEVICE REMOVED fixture/);
+  assert.doesNotMatch(output.join("\n"), /handoff=estimated_rx_window/);
+  assert.equal(transport.requests.filter(bytes => bytes[4] === 0x17).length, 1);
+  const store = await CwTrialRecordStore.open(directory);
+  assert.equal(await store.hasUnresolvedIntent(), true);
+  const rows = await store.readAll();
+  assert.match(rows.at(-1)!.detail!, /error=.*USB DEVICE REMOVED fixture/);
+  assert.match(rows.at(-1)!.detail!, /closeConfirmed=true; phase=locked/);
+});
+
+test("explicit close cancels an estimated wait without waiting for the message duration", async t => {
+  const transport = createCwTrialSimulatorTransport({ chunkSize: 64, echo: false });
+  const session = new CwTrialSession({ transport });
+  t.after(() => session.close());
+  await session.readContext();
+  await session.sendMessage("CQ CQ DE BG2GZA K");
+  const waiting = session.waitEstimatedReceiveWindow("CQ CQ DE BG2GZA K", 20);
+  const rejected = assert.rejects(waiting, /session closing; RX observation cancelled/);
+  await session.close();
+  await rejected;
+  assert.equal(session.view().closeConfirmed, true);
+  assert.equal(session.view().error, null);
+});

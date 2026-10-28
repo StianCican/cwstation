@@ -1,5 +1,90 @@
 # V00-04-A GUI最小垂直切片
 
+## 2026-10-28：按用户要求结束本次工作
+
+用户计划下次采用更好的USB线，这次结束。Windows进程只读检查未发现rig-controld/rig-cw-trial/cwrig相关Node进程，无遗留本轮串口作业。未重新开口/发送/核查intent或改设备设置，最后RX读数沿用5%对照后的成功读取；不声称结束瞬间重新实测。原账本SHA仍81f3c9eee15aae1f24faebbc3dd2f0d6184c696e59480e74ba46f4131ff801c8，最新intent保留未决。下次沿当前事实和新线条件接续，不重开方案或重复无变化测试。文档基线 `.local-backups/session-end-20261028-221204/`，本轮仅状态收尾，无需构建/产品测试。
+
+
+## 2026-10-28：5%功率单次现场对照仍失败，断线诊断生效
+
+用户确认功率降至5%，其百分比未实测瓦数。原单次只读RX与关闭正常后，原TTY review核查上次intent；沿原rig.sh精确确认同正文CQ CQ DE BG2GZA K、20WPM，仅一次，预检7.009600MHz/CW/FIL2、RX、Split/RIT/XIT OFF、SEMI。正文12:00:59.397 UTC获FB；12:01:05.497（约6.1s）故障处理即启动，停止写出失败（serial transport is not ready），exit1、closeConfirmed=true/locked；原始故障为CW trial transport closed: Reading from COM port (ReadIOCompletion): Operation aborted，已输出并JSON编码保存到原session_close.detail。新生命周期取消不再等满13625ms，故障处理实机限定通过，正常收尾不通过。
+
+随后端口枚举含COM17、CP210x PnP Status OK；重新沿原transport/session只读打开成功，原频率/CW/RX均一致、error=null并关闭确认。本次未观测到持续端口消失，不宣称5%与25%现象完全一致；无法排除短暂USB失联后自动恢复。已读安装依赖node_modules/@serialport/bindings-cpp/src/serialport_win.cpp，ReadIOCompletion中的Operation aborted由ERROR_OPERATION_ABORTED映射；该错误本身不区分USB瞬断、驱动取消或其他取消原因，不能当作唯一RF/软件根因。
+
+无自动重发、重新开口只做读取；原intent 99014e59-2ff5-426e-826f-63d2d9ff3d01未决。原账本字节前缀一致，本轮追加6行（review+5事件），最新SHA 81f3c9eee15aae1f24faebbc3dd2f0d6184c696e59480e74ba46f4131ff801c8。保护 `.local-backups/cw-5percent-20261028-205930/`含四文档/正式账本/dirty、实际编译SHA以及ledger-after/result。运行模块与TX-DROP-01已验编译版相同，用户设置功率为唯一计划操作变化；USB曾插拔且试验时段不同，不能将对比解释为严格单变量因果实验。未重复无变更build/测试，未执行GUI真实或连续CW。
+
+检查点：当前主链/授权/备份、设备RX检查、旧intent按原review核查、一次发射与退出、只读复核及事实收口完成。R01/R02/R05/R06/R09–R13在真实故障处理/数据保护范围满足，R03/R04/R07/R08无实现/接口改变沿用原限制。DSH未参与本次实机，沿用前轮代码审议。下一最小物理对照为可靠短USB线/直连电脑、USB与天线馈线分离等接线改善；未经现场条件确认不追加RF，不在软件端吞掉断线或自动恢复未决发送。
+
+
+## 2026-10-28：功率与本体状态补充（只读定位）
+
+用户报告功率设置25%，没有电台重启或屏幕闪断。该百分比不等于25W或RF实测功率；本体未重启不排除USB局部供电/驱动/数据链问题。Windows端口列表本次含COM17。未改功率、系统USB节能设置或驱动，未发射/核查intent。候选下一最小对照仅降低至5%再按原链单次试发，其他频率/模式/正文/码速保持，需用户完成现场设置；成功也仅说明相关性，不直接认定RF根因。文档保护`.local-backups/usb-power-observation-20261028-205413/`，当前主链/软件/账本不变，无需重跑build或测试。
+
+
+## 2026-10-28：TX-DROP-01 掉线即时结束等待与首因记录
+
+用户确认手机译文基本一致，错字倾向与旧解码一致；据用户观察，自定义正文实际发出且内容基本吻合，未取得逐字准确率真值。用户授权加紧发射改造，期望CLI/GUI长时间作业。本轮当前增量在原runner/session上修故障处理，不新建发送器/服务/入口/协议/schema、不自动重连/重发/核查旧intent、不启用GUI真实。长时作业尚未验收。
+
+事实定位：Windows端口列表确实再次没有COM17，现有系统日志仅见蓝牙/UMDF通用事件，未找到可归属于该CP210x掉线的根因证据；不能断言软件或RF/USB线唯一原因。软件确定缺口为估算delay未感知会话故障，延迟完整13625ms后才报泛化stop/close，原session.error未显示/落盘。
+
+修改：session私有lifecycle AbortController，failSession先以原Error abort，再rejectPending/关闭；beginClose仅首次尚未abort时写关闭原因。估算及采样间隔两处delay/循环检查合并调用者与生命周期signal，重抛首因；不将该signal传给stop或打断已有query排序。runner失败显示session.error，原session_close.detail追加JSON编码error（无schema变更）。串口失效后仍按原规则锁定关闭，不承诺FF能写出。保留UNKNOWN/未决阻断。影响仅apps/rig-cw-trial.ts、packages/cw-trial/src/session.ts和原估算专项。
+
+保护：`.local-backups/tx-disconnect-fix-20261028-204021/source-before.tar`含当前dirty源码/测试/四文档/正式账本，dist-before.tar与dirty-before.patch覆盖产物及开工修改；Git基线沿6711b59，不覆盖先前成果。validation.json保存最终源码和编译文件SHA。正式账本逐字节与保护副本相同，SHA 6af3392a0a23187da4bde48cf6f098c0c1ff50801993b64299040713952df7d8，本轮无核查或发送。
+
+阶段与证据：
+
+- 设计：DSH v1只读100秒exit124，未交完整报告；其已读代码意见强调先abort原故障、关闭不能覆盖首因，Codex采纳并检查，不计独立设计通过。Codex在原任务六项完成最小设计检查后实施。
+- 首链：新增注入断线回归用原sim transport和onClose，不建生产路径，13.625秒正文等待在测试约46ms退出、原因输出/原记录保存、无重发且未决保留；显式close取消等待也覆盖。原估算/正常RX/调用者取消/在途query取消/runner失败回归总56/56（tests.log），不重跑无变化解码/GUI/模型。
+- 构建：npm run build exit0（tool session66082，build.log；日志静默不替代退出码）。实际Windows Node加载当前dist注入断线约36.6ms退出，原因显示及记录通过（windows-built-smoke.log），工具exit0代表fixture断言成功，内部runner仍按预期exit1。
+- 运行：WSL与Windows读取两个实际编译模块SHA一致，见validation.json。COM17随后恢复，实际Windows Node/current dist沿原session/transport进行60秒零发送观察，7次八查询均7.009600MHz/CW/FIL2/RX、Split/RIT/XIT OFF/SEMI；exit0、error=null、关闭确认（live-readonly-60s.log）。没有真实发射后复验新处理，不能宣称硬件断线已修或长时间作业通过。
+- 交付：DSH v2只读exit0（dsh-final.log）无新增S0/S1；残留S2为调用者取消在query在途时仍最多等待原查询超时、故障关闭时FF可能写失败。这是既有串行/故障语义，本轮保留并披露，不绕过隔离。DSH未运行测试；由Codex检查测试/运行证据及最终diff。DSH口述“新增三例”不准确，实际新增两项，以tests.log为准。
+
+R01/R02/R04/R05/R06/R09/R10/R11/R12/R13在本限定范围通过；R03记录schema不变，R07无IPC改变，R08无权限/隔离改变，沿用原约束。待完成：USB失联物理原因及受控发射对照、真实发送后的新故障反馈、正常收发停止全链验收，之后才能扩展长时间CLI作业和GUI真实接入。当前不自动开展连续RF。
+
+
+## 2026-10-28：手机接收反馈与第三次现场试验
+
+用户报告手机此前未解出、可能声音小，并要求多次试验。明确每次检查RX、掉线停止后，原链仅再发一次同正文20WPM：发前readContext为7.009600MHz/CW/FIL2/RX、Split/RIT/XIT OFF/SEMI，旧进程已退出，按原TTY review追加核查旧intent，再由原TTY精确确认发送。正文FB，用户反馈“接收到了”；没有逐字手机译文或准确率证据。等待13625ms后仍RX observation interrupted by stop/close，stop write_failed（serial transport is not ready），exit1/closeConfirmed=true/locked；故停止其余试发，未自动重发或解除新intent。备份 `.local-backups/phone-cw-retry-20261028-203407/` 含修改前两文档及正式账本，ledger-after及result；旧账本前缀一致，新SHA 6af3392a0a23187da4bde48cf6f098c0c1ff50801993b64299040713952df7d8。新intent ca2c380c-8a3a-4a2b-93cf-7a9350947646未决。用户接收反馈成立，整段内容准确性、RF完成及控制收尾未通过；本次未在退出后重新核查端口枚举，不把前两次COM17消失直接当作本轮已观测事实。无源码/构建变化。
+
+
+## 2026-10-28：插拔后只读恢复对照
+
+用户插拔USB后COM17恢复。为区分单纯空闲时间与前两次发射后失效，复用既有transport/session，同一端口读取上下文→静置16秒（超过原13.625秒估算等待）→再次读取。前后7.009600MHz/CW/FIL2、RX、Split/RIT/XIT OFF、SEMI一致，view.error=null，退出0、关闭确认。只读范围通过；未发送正文/stop或核查intent，未变更源码/构建/正式账本。本次未复现不等于已修复，也不能认定射频干扰是根因。仍暂停RF，待听感反馈及进一步定向定位。修改前文档副本/dirty及result.json在`.local-backups/radio-usb-reconnected-20261028-203146/`。
+
+
+## 2026-10-28：自定义正文现场试发（两次均未通过收尾验收）
+
+用户确认20WPM及正文CQ CQ DE BG2GZA K，随后对旧TEST人工核查问题要求继续。正式账本原review入口核查旧TEST（旧unknown不改），原TTY rig.sh单次发送。实读7.009600MHz/CW/FIL2、RX、Split/RIT/XIT OFF、SEMI，预检/确认后重读通过。第一次11:19:54 UTC正文获FB；等待13625ms后RX观察报interrupted by stop/close，stop为write_failed（serial transport is not ready），exit1，closeConfirmed=true/phase=locked。没有将失败报为成功，没有自动重发。
+
+用户明确要求“再发一下，现在是接收状态”。原单次只读复查RX成功，关闭正常；依据该人工确认在同一账本追加第一条自定义intent的review，然后原入口仅再发一次。第二次11:23:08 UTC正文也获FB，同样13625ms后观察失败/stop未写出、exit1/关闭确认但locked。两次正文命令均ACK；没有音频/用户听到完整正文的新证据，不把ACK解释为RF完成或停止。本轮仅此两次，其中第二次由用户单独要求。
+
+第二次退出后，原单次readContext重新打开COM17立即失败：Opening COM17: File not found。这说明事后观察到操作系统层串口不可用；不能据此认定USB线、供电、射频干扰或软件是唯一根因，也未独立复核第二次后的当前物理RX。停止进一步试发，当前需恢复设备连接并定位串口丢失，GUI真实继续禁用。
+
+保护 `.local-backups/custom-tx-live-20261028-201853/` 含开工正式账本/四文档副本、dirty、实际运行编译文件SHA、第二次前账本和ledger-after/live-result。正式账本原字节前缀一致，本轮追加两条review及两组5事件，共12行，最新SHA256 03a5914a1fc405c8d8419ecc03aa843de893ae87b2d0c6806b425f5d3f49a235；最新自定义intent 0db0b72e-6bec-480a-a253-a2a71c9d6ce4仍未决，不能自动核查/换目录绕过。原记录无删除/改写，无产品代码/协议/入口/schema变化，未为现场失败重跑离线构建/测试。中间一次只读intentForReview误用在未持锁时被拒绝，零修改；随后用原TTY review入口持锁操作。
+
+检查点：开工保护/授权核对、实际运行编译文件manifest；设备接入前预检；失败后停止/关闭及只读复查；用户单独要求才重复；第二次设备消失后停止所有RF尝试。R01/R02/R05/R06/R09/R11–R13在如实保留unknown/未决范围满足，R03/R04/R07/R08无代码/公共接口变化沿用；R10仅命令ACK及失败证据，实际收发收尾不通过。没有DSH实机操作或新的独立现场审议，不将本次描述为完整实机验收。
+
+
+## 2026-10-28：自定义短报文原链离线验收（CW-CUSTOM-01 v2）
+
+用户要求先恢复发射完善。本增量沿原rig.sh→rig-controld→runCwTrial→CwTrialSession→原模拟/串口transport完成自定义短报文接入与验证；不启用GUI真实发送，不改自动回复的仅模拟边界。真实TEST仍沿用10月27日用户听到CW的证据，不重复试发。当前事实以MEMORY顶部为准。
+
+设计及首链检查发现两处原实现未闭环：真实serial策略仍仅允许E/TEST；默认32字节parser会丢弃30字节正文对应的36字节帧。Codex在原serial策略内复用planCivCwMessage并整帧精确比较，允许默认94/E0地址、1..30字节大写ASCII合法正文，拒绝首尾空白、小写、^、控制/非ASCII/错误地址/拼接帧；只读策略不放宽。原session/simulator parser设36，通用parser默认32保留。固定E/TEST/FF快照导出兼容保留；无新工厂接口、发送循环、入口、服务、协议或记录schema。另修桌面tsconfig误收手机CMake compiler_depend.ts的构建阻塞，仅排除独立apps/harmony-cw。
+
+保护：Git基线6711b59，开工已有手机文档/源码和MEMORY/ROADMAP修改，未覆盖。`.local-backups/custom-tx-closure-20261028-194541/`含dirty-before.patch、source-docs-before.tar、dist-before.tar；扩范围前另存serial.ts、serial.test.ts、simulator-before.ts、tsconfig-before.json；DSH新增测试交回后Codex修改注释前保留dsh-custom-test-before-review.ts。新专项和cli-fixture此前不存在。正式账本SHA256前后均ae11817de2b2ab0abe47d0d81449619b4101ed62ac7bf39c051d626f26e8b184，未核查/清除/改写任何真实intent。
+
+验证（日志与final-validation.json均在上述目录）：
+
+- 首次build因误收手机CMake文件失败（build.log），局部排除后最终npm run build exit0（工具session60360、build-final.log）；该日志仅npm notice，退出码单独记录，不把无输出当成功依据。编译入口随后实际运行通过。
+- 首受影响专项80/80（affected-tests.log）。修复parser后原runner/估算54/54（runner-final-tests.log）；新串口策略23/23（serial-tests.log），覆盖真实transport的portFactory驱动替身、30/31边界、非法帧及默认只读拒绝发送；无物理串口。
+- DSH新增自定义专项，最初暴露parser问题并曾修正测试预期；原执行360秒exit124，未产出最终审议，不能称完整交付通过。Codex读取其测试及发现、修复原链；最终custom-tests-final.log为10/10，包括26/30字节正文、精确确认/拒绝、一次正文及stop、取消/刷盘失败零发、精确账本及同目录重跑阻断、旧E/TEST固定digest和原人工review兼容。未收紧存储校验以免破坏兼容；记录不产生发送许可。
+- 编译后的原bash rig.sh入口（WSL调用Windows Node）在新增cli-fixture中模拟CQ CQ DE BG2GZA K、声明48WPM估算、RX稳定观察、停止/关闭exit0，原schema六行；同目录重跑exit3且账本逐字节不变，见cli-result.json及cli-first-open-stdin.log/cli-second.log。首次子进程stdin立即EOF触发正常取消，exit1且零记录（cli-first.log）；保持stdin打开后才验证正常路径，没有改产品取消行为或换目录绕过intent。
+
+DSH v2只读交叉审议exit0（dsh-final-review.log），检查最终局部策略/parser/测试，无剩余S0/S1。两项S2由Codex处理：修正新测试仍描述parser32的过时注释；以实际工具exit0和final-validation.json补构建证据，未为日志静默重复构建。DSH引用9/9为中间日志，新增独立30字节回归后最终10/10。Codex检查diff、最终测试与编译模拟结果后限定离线验收通过。
+
+检查点：开工核对主链/备份；设计沿现有实现；首链暴露串口拒绝与parser边界后在既有文件修复，扩范围前补保护；不接真实设备；交付核对差异和正式账本。R01–R06、R09–R13在该离线范围通过；R07无IPC改变不适用，R08无隔离/权限改变沿用原限制。真实自定义RF、实际码速/收发切换、物理停发和GUI真实发送未验，0.0不据此宣告完成。
+
+
 ## 2026-10-27：现场输入首次收音（内容未验收）
 
 用户已连接电台/端馈，并确认Windows声音输入选择USB Audio CODEC。仅授权收音，不执行串口/发送。复用现有WSL GUI、FFmpeg pulse/RDPSource、原multimon-ng及mock回复配置，无产品源码/接口/依赖/构建变更。Windows端点此前枚举存在；RDPSource是Windows默认输入转接，本次没有独立验证信号来源相关性。

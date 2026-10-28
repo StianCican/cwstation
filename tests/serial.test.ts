@@ -6,6 +6,7 @@ import { openSerialCivTransport, ALLOWED_CIV_READ_REQUESTS,
   openCwTrialSerialTransport, ALLOWED_CW_TRIAL_WRITES,
   type SerialPortLike, type SerialPortCallback, type SerialPortOpenSettings,
 } from "../packages/devices/src/serial.js";
+import { planCivCwMessage } from "../packages/devices/src/civ-tx-plan.js";
 import { main, runSerialRead, runSimulation } from "../apps/cwrig.js";
 
 type Operation = "open" | "set" | "flush" | "write" | "drain" | "close";
@@ -57,20 +58,29 @@ function options(port: FakePort, path = `FAKE-${++sequence}`) {
 }
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 2));
 
-test("selected trial transport requires explicit confirmation and only permits fixed messages", async () => {
+test("selected trial transport requires explicit confirmation and permits validated short messages", async () => {
   const fake = new FakePort(), opts = options(fake);
   await assert.rejects(openCwTrialSerialTransport({ ...opts, confirmKeyingOff: false }), /confirmKeyingOff/);
   assert.equal(fake.calls.length, 0);
   const transport = await openCwTrialSerialTransport({ ...opts, confirmKeyingOff: true });
   try {
     for (const bytes of ALLOWED_CW_TRIAL_WRITES) await transport.write(Uint8Array.from(bytes));
-    assert.equal(fake.writes.length, 3);
+    const custom = planCivCwMessage("CQ CQ DE BG2GZA K").bytes;
+    const boundary = planCivCwMessage("A".repeat(30)).bytes;
+    await transport.write(Uint8Array.from(custom));
+    await transport.write(Uint8Array.from(boundary));
+    assert.deepEqual([...fake.writes[3]!], custom);
+    assert.deepEqual([...fake.writes[4]!], boundary);
+    const frame = (text: string) => [0xfe, 0xfe, 0x94, 0xe0, 0x17, ...Array.from(text, c => c.charCodeAt(0)), 0xfd];
     for (const bytes of [
-      [0xfe, 0xfe, 0x94, 0xe0, 0x17, 0x53, 0x4f, 0x53, 0xfd],
+      ...["A".repeat(31), "cq", "^", "A^B", " CQ", "CQ ", "A\nB", "A\x00B", "A\x7fB", "é", "!", ""].map(frame),
+      [0xfe, 0xfe, 0x95, 0xe0, 0x17, 0x45, 0xfd],
+      [0xfe, 0xfe, 0x94, 0xe1, 0x17, 0x45, 0xfd],
+      [0xfe, 0xfe, 0x94, 0xe0, 0x17, 0x45, 0xfd, 0xfd],
       [0xfe, 0xfe, 0x94, 0xe0, 0x1c, 0, 1, 0xfd],
       [0xfe, 0xfe, 0x94, 0xe0, 5, 0, 0, 0, 0, 0, 0xfd],
     ]) await assert.rejects(transport.write(Uint8Array.from(bytes)), /non-whitelisted/);
-    assert.equal(fake.writes.length, 3);
+    assert.equal(fake.writes.length, 5);
   } finally { await transport.close(); }
   assert.equal(transport.isClosed, true);
 });

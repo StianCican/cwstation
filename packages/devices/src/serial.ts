@@ -5,7 +5,7 @@
 //    任何其它字节（发码 0x17、停止 0xFF、PTT/SEND、写频率/模式等）在写
 //    之前即被拒绝。
 //  - openCwTrialSerialTransport 是独立命名的窄白名单：八条固定 94/E0 只读
-//    请求，加且仅加 Command 17 的 E / TEST / FF 三条固定帧；必须显式
+//    请求，加校验后的1～30字节大写短报文及 FF 停止帧；必须显式
 //    confirmKeyingOff:true。两个工厂共用同一段生命周期代码，但各自持有
 //    不可变的授权策略，互不放宽。
 //  - 串口必须显式指定；不枚举端口、不扫地址、不扫波特率。
@@ -40,7 +40,7 @@ import {
   type CivTransport,
 } from "./civ.js";
 import { isAllowedContextReadRequest } from "./civ-context-read.js";
-import { CIV_COMMAND_SEND_CW, CIV_CW_STOP_BYTE } from "./civ-tx-plan.js";
+import { CIV_COMMAND_SEND_CW, CIV_CW_STOP_BYTE, planCivCwMessage } from "./civ-tx-plan.js";
 
 /** 默认波特率；任务指定的 COM17 只读链路即 19200。 */
 export const SERIAL_DEFAULT_BAUD_RATE = 19200;
@@ -118,7 +118,7 @@ function exactlyEquals(data: Uint8Array | readonly number[], expected: readonly 
 }
 
 // Command 17 的三条固定帧：E=0x45，TEST=0x54 0x45 0x53 0x54，FF=停止。
-// 不提供任意载荷；试验会话只能写出这里列出的确切字节。
+// 保留历史帧及导出快照兼容；其他短报文在下面经共享 planner 精确校验。
 const CW_TRIAL_WRITE_E = Object.freeze([
   CIV_PREAMBLE,
   CIV_PREAMBLE,
@@ -158,7 +158,7 @@ const CW_TRIAL_WRITE_WHITELIST: readonly (readonly number[])[] = Object.freeze([
   CW_TRIAL_WRITE_STOP,
 ]);
 
-/** 受控试验写白名单的冻结副本，仅供测试断言；运行时比较使用私有常量。 */
+/** 历史固定帧的冻结快照，仅供兼容测试；完整策略还校验自定义短报文。 */
 export const ALLOWED_CW_TRIAL_WRITES: readonly (readonly number[])[] = Object.freeze(
   CW_TRIAL_WRITE_WHITELIST.map((bytes) => Object.freeze([...bytes])),
 );
@@ -169,7 +169,17 @@ function isAllowedCwTrialWrite(data: Uint8Array | readonly number[]): boolean {
   for (const allowed of CW_TRIAL_WRITE_WHITELIST) {
     if (exactlyEquals(data, allowed)) return true;
   }
-  return false;
+  // Only the exact default-address Command 17 frame produced by the shared
+  // planner is allowed. Decode one byte per character: never mask high bytes or
+  // normalize text into a different payload. The read-only policy is separate.
+  if (data.length < 7 || data.length > 36) return false;
+  const text = String.fromCharCode(...Array.from(data).slice(5, -1));
+  if (text.trim() !== text || /[a-z^]/.test(text)) return false;
+  try {
+    return exactlyEquals(data, planCivCwMessage(text).bytes);
+  } catch {
+    return false;
+  }
 }
 
 const CW_TRIAL_AUTHORIZATION: SerialWriteAuthorization = Object.freeze({
@@ -177,7 +187,7 @@ const CW_TRIAL_AUTHORIZATION: SerialWriteAuthorization = Object.freeze({
   isAllowed: isAllowedCwTrialWrite,
   rejectionMessage: (data: Uint8Array | readonly number[]): string =>
     `refusing to write non-whitelisted CW trial bytes (${hexBytes(data)}); allowed are only the eight ` +
-    "fixed 94/E0 read requests and FE FE 94 E0 17 45 FD, FE FE 94 E0 17 54 45 53 54 FD (TEST) " +
+    "fixed 94/E0 read requests, validated uppercase Command 17 text (1..30 bytes; no ^), " +
     "or FE FE 94 E0 17 FF FD (stop)",
 });
 
@@ -940,8 +950,8 @@ export interface OpenCwTrialSerialTransportOptions extends OpenSerialCivTranspor
 /**
  * 打开一个受控 CW 试验串口 transport。
  *
- * 写白名单独立且固定：八条 94/E0 只读请求，加 Command 17 的 E / TEST / FF
- * 三条固定帧；没有任意载荷、PTT、设置或分块入口。必须显式
+ * 写策略独立：八条 94/E0 只读请求、校验后的大写短报文及 FF 停止帧；
+ * 没有任意字节、PTT、设置或分块入口。必须显式
  * confirmKeyingOff:true。其余生命周期复用 openSerialCivTransport。
  */
 export async function openCwTrialSerialTransport(

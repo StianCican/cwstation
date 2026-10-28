@@ -2,7 +2,7 @@
 //
 // 流程：记录目录未解决意图检查 → 显式 keying-off 与非 TTY 拒绝 → 打开唯一
 // 试验 transport → 八查询预检 → 交互确认 → 重读八项核对 → 写前 fsync 记录
-// 意图 → 一次固定短报文 → 只允许停止/退出。真实模式必须有 TTY 且必须由用户
+// 意图 → 一次校验后的短报文 → 只允许停止/退出。真实模式必须有 TTY 且必须由用户
 // 输入报文本身确认；模拟模式用注入的 Fake transport 观察同一流程，绝不自动
 // 确认真实发送。
 
@@ -148,7 +148,7 @@ export interface CwTrialIo {
 
 /**
  * 进程内绑定：只用于 V00-03-B 的已校验回复提案。
- * 绝不从 CLI 参数读取任意文本，也不向真实发送入口开放。
+ * 此提案绑定不从 CLI 参数读取，也不向真实发送入口开放；独立 --message 走人工试验校验。
  */
 export interface CwTrialReplyBinding {
   readonly text: string;
@@ -673,6 +673,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
       io.write(`cw-trial: stop failed: ${message(stopError)}`);
     }
     io.write(`cw-trial: failed: ${message(error)}`);
+    if (session?.view().error) io.write(`cw-trial: session error: ${session.view().error}`);
     if (binding !== undefined) {
       io.write(`cw-trial: reply draft retained: ${JSON.stringify(messageText)}`);
     }
@@ -695,7 +696,7 @@ export async function runCwTrial(argv: readonly string[], deps: CwTrialRunnerDep
         try {
           await store.append({
             event: "session_close",
-            detail: `closeConfirmed=${session.view().closeConfirmed}; phase=${session.view().phase}`,
+            detail: `closeConfirmed=${session.view().closeConfirmed}; phase=${session.view().phase}; error=${JSON.stringify(session.view().error)}`,
           });
         } catch (error) {
           cleanupExit ??= 1;

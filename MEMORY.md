@@ -2,6 +2,54 @@
 
 更新日期：2026-10-28。
 
+## 当前事实：CW 自定义短报文原链离线验收完成（2026-10-28）
+
+- 会话结束/暂停（2026-10-28，用户明确要求）：这次停止全部工作，下次用户将采用更好的USB线后再继续。Windows进程检查未发现rig-controld/rig-cw-trial/cwrig串口Node进程；不再发射、改设备设置或核查未决intent。最后一次实际读取为7.009600MHz/CW/RX、功率5%由用户报告，结束时未重新开口；最新未决intent及账本原样保留。下次先读取本清单，确认新USB线/当前状态，再沿原链做最小对照；不从零重做已通过软件测试或自动启动RF。收尾文档修改前备份 `.local-backups/session-end-20261028-221204/`。
+
+- 最新5%对照（2026-10-28）：用户将功率降至5%后，原RX预检/原review核查旧intent/原TTY单次CQ CQ DE BG2GZA K、20WPM；正文FB，约6.1秒后原始错误Reading from COM port (ReadIOCompletion): Operation aborted，停止写失败、exit1，关闭确认/locked。新故障等待取消/原始原因输出和session_close落盘已真实验证；不再等13.625秒，不宣称正常收尾通过。随后Windows COM17仍在且PnP OK，原单次readContext重新打开成功、RX/原设置不变，关闭正常；本次没有观测到持续端口消失，不能直接套用25%现象，也不能排除瞬时断连后恢复。
+- 本轮已停止后续RF；5%仍失败，低功率不是修复。当前候选定位USB线/接口、USB数据链驱动/供电、RF共模干扰；设备本体未重启是用户观察，根因未定，不自动重连或扩大串口权限。旧账本前缀保留，追加6行，最新intent 99014e59-2ff5-426e-826f-63d2d9ff3d01未决，SHA 81f3c9eee15aae1f24faebbc3dd2f0d6184c696e59480e74ba46f4131ff801c8。保护与结果 `.local-backups/cw-5percent-20261028-205930/`。无源码变化/无需重跑build，GUI真实和长时CLI仍未验。
+
+- 最新用户现场补充（2026-10-28）：功率设置为25%，未观察到电台重启或屏幕闪断；25%不是实测瓦数，不换算为25W。当前COM17仍在Windows列表。保留USB数据链/驱动/局部供电及RF共模干扰等待查方向，不据本体未重启排除USB子系统问题。下一最小对照建议只降低功率到5%且保持其他条件，现场确认后才单次测试；尚未改功率/发射/核查intent。补充前文档和dirty在`.local-backups/usb-power-observation-20261028-205413/`。
+
+- 当前任务进展（2026-10-28）：用户确认手机内容基本一致、误码与旧解码倾向相同，按用户观察记录自定义RF内容基本吻合，非逐字准确率验收。用户要求加紧发射改造，目标CLI/GUI长时间CW作业。已完成限定软件修复：session生命周期取消估算/采样等待，保留首个断线错误；runner输出并在原session_close detail记录原因。无新入口/服务/协议/schema、无自动重连/重发/核查，GUI真实不启用。
+- TX-DROP-01验证：受影响专项56/56、build exit0，实际Windows编译模块故障注入约37ms终止原13.625秒等待、原因输出/落盘及未决保留通过；WSL/Windows运行模块SHA一致。DSH v1超时无完整报告，仅采纳首因顺序建议；v2只读审议exit0无新增S0/S1，Codex复核闭环，已知在途query取消仍受原超时约束、故障关闭不保证stop帧写出。保护 `.local-backups/tx-disconnect-fix-20261028-204021/` 含当前源码/文档/账本/dist/dirty及验证日志和manifest；正式账本逐字节未变。
+- 当前硬件状态：本轮先确认COM17不存在，随后恢复；新编译程序实际COM17只读60秒/7次上下文全部RX、7.009600MHz/CW/FIL2/SEMI、Split/RIT/XIT OFF，无error、关闭确认。零RF，不宣称USB掉线已修/长期作业可用。下一缺口仍是实际发射时USB失联原因及正常收发停止的现场验收，已问用户功率/电台重启/USB提示，待反馈。算法改进仅候选；完整长时CLI及GUI真实仍未完成。详见04-A证据。
+
+- 最新手机接收试验（2026-10-28）：用户先报告手机此前未解出、怀疑音量小，随后明确要求多试几次；复查原频率CW/RX并按原review核查旧intent后，仅新发一次CQ CQ DE BG2GZA K/20WPM。正文FB，用户随即反馈“接收到了”，但未提供逐字译文，不能宣称准确率通过。原收尾仍13625ms后RX观察失败、stop write_failed/serial transport is not ready、exit1；按事先边界停止后续试发，不为多次请求自动连续发报。最新intent ca2c380c-8a3a-4a2b-93cf-7a9350947646保留未决；正式账本旧字节前缀不变，SHA 6af3392a0a23187da4bde48cf6f098c0c1ff50801993b64299040713952df7d8。备份/本轮账本/result在 `.local-backups/phone-cw-retry-20261028-203407/`。无产品代码改动，手机收到与设备控制收尾失败分别记录；当前继续定位串口失效。
+
+- 最新USB恢复（2026-10-28）：用户插拔后COM17重新出现。复用原transport/session做零发送读取→保持同一串口静置16秒→再次读取，前后均7.009600MHz/CW/FIL2、RX、Split/RIT/XIT OFF、SEMI；无会话错误、exit0/关闭确认。该最小对照超过原13625ms等待，说明本次纯接收静置未复现掉线，不证明发射一定引发掉线或确定RF/USB根因。无发送/stop/账本操作，最新intent仍未决；继续暂停RF，待用户反馈完整CW听感。修改前文档/dirty和结果 `.local-backups/radio-usb-reconnected-20261028-203146/`。
+
+- 最新现场（2026-10-28，替代下方“本轮零RF/账本未变”的旧快照）：用户确认20WPM及CQ CQ DE BG2GZA K，并确认旧TEST核查继续；原TTY review后真实试发一次，正文FB，但13625ms等待后会话失效，RX观察失败/stop write_failed、exit1、closeConfirmed=true/locked。用户另要求“再发一下，现在是接收状态”，只读RX复查正常后按原review核查该条、再试发一次；同样FB及收尾失败。第二次后COM17重开报File not found，操作系统端口当前不可用；根因未定，不归因于单一USB/RF/软件。没有自动第三次发送，实际码速/完整RF及物理停发不通过；用户听感待反馈。
+- 当前唯一任务转为定位现场串口失效，恢复连接前不继续RF或启用GUI真实；手机无需连接。原账本追加12行且旧字节前缀不变，最新SHA 03a5914a1fc405c8d8419ecc03aa843de893ae87b2d0c6806b425f5d3f49a235，最新intent 0db0b72e-6bec-480a-a253-a2a71c9d6ce4未决，不自动核查。保护 `.local-backups/custom-tx-live-20261028-201853/` 含账本/文档基线及运行SHA、两次前后快照和结果；细节见04-A证据。本轮无产品源码修改，既有离线通过仍有效但不等于实机收尾通过。
+
+- 最新现场只读确认（2026-10-28）：用户同意后COM17已识别，原状态服务未运行且未发现本项目Windows Node持有串口；使用既有单次read及CwTrialSession.readContext读取后关闭，exit0。实读7.009600MHz/CW/FIL2、TX频率相同、RX、Split/RIT/XIT OFF、SEMI，预检通过。本轮零发送/停止帧、正式账本未改；当前实际键速与待发自定义正文仍待现场确认，未启动发送。修改前MEMORY副本及dirty补丁、读取结果：`.local-backups/radio-readonly-20261028-201431/`。
+
+- 用户要求先恢复发射完善；本次自定义短报文CLI增量已限定离线验收。原链没有新增入口/服务/协议/schema：修复真实串口仍E/TEST导致自定义正文被拒，以及32字节parser丢弃36字节帧；原session/simulator设36，默认只读串口与通用parser不变。1～30字节大写合法ASCII、精确确认、一次发送/stop及未决阻断保留，自动回复和GUI真实发送仍不开放。修正桌面tsconfig排除独立鸿蒙工程，未改手机/算法。
+- 最终自定义专项10/10、串口专项23/23、受影响runner/估算54/54，旧账本/planner专项沿用本轮初次80/80相应证据；build exit0、原rig.sh编译入口Windows Node模拟自定义正文+48WPM估算+RX观察+stop/close exit0，同目录重跑exit3/六行记录不变。DSH初轮超时但交付测试/发现，Codex修复；v2只读审议exit0，两项说明/构建证据S2已处理，Codex核对后收口，详见[04-A证据](docs/evidence/V00-04-A-GUI切片.md)。基线6711b59及保护 `.local-backups/custom-tx-closure-20261028-194541/`，正式JSONL SHA仍ae11817de2b2ab0abe47d0d81449619b4101ed62ac7bf39c051d626f26e8b184。
+- 真实TEST沿用10月27日历史有效证据；本轮没有打开物理串口或发送RF。剩余发射完善：新的自定义正文实际发射、实际码速/收发切换和GUI真实接入仍未验；0.0未完成。此次增量已关闭，后续现场需当前设备条件，不自动重复旧TEST或启动连续CQ。手机不用连接，解码算法改进仍仅记录。
+
+## 上一任务：Harmony 手机端 CW 实时解码检验器（已交付限定范围）
+
+- 当前动作已收口（2026-10-28）：用户要求解码改进建议“先做记录”。候选已写入[ROADMAP后续版本候选](docs/ROADMAP.md#cw手机解码质量改进备忘2026-10-28仅记录)：目标音调检测→稳健时序估计→频带内自适应阈值，每次独立对照；真实PCM回放/手动本地录音仅为验证备选，录音未授权。没有改算法/应用、没有构建安装或新增音频持久化，不自动进入实施队列。文档修改前MEMORY/ROADMAP副本及dirty补丁：`.local-backups/decoder-proposals-record-20261028-193822`；后续先读取本条及既有质量证据，再按用户要求恢复。
+
+- 最新安静对照（2026-10-28）：用户提供3截图，第一张06:25为15WPM，后两张06:27为20WPM上下滚动，按内容合并重叠。手工转写、忽略空格全135字符：15为20编辑/CER约14.8%（替换5/漏14/多1），20为13编辑/CER约9.6%（替换10/漏0/多3）；前轮有说话声约21.5%两档，安静改善但未证明其他条件完全一致或唯一人声原因。错误偏前段：15从JUMPS至末K正文一致，仅尾多I；20从23456789至结尾一致，不能据此剔除前段错误重算满分，不支持长期恶化判断。安静仍有明显开头漏码/局部错码，时序适应/声学包络等为候选，未确定根因。未改手机/算法、未新增录音；当前交付为本轮计分和比较。源图manifest/缩图/转写/分数/分析/MEMORY备份在`.local-backups/cw-quiet-score-20261028-193058/`。
+
+- 最新现场计分（2026-10-28）：用户提供Desktop/CW解码四张截图，前两张02:03为15WPM上下滚动、后两张02:05为20WPM上下滚动；重叠不重复。用户补充舍友持续说话，本轮明确为人声干扰样本，不能代表安静环境准确率。手工转写初估：忽略空格、每个<...>作为一个失败字符且保留首尾杂码，两档均29/135编辑、CER约21.5%（15替换22/漏5/多2；20替换20/漏4/多5），截图转写非正式精确验收，不能把100-CER当正确字符比例。数字host的0%/0.741%不替代声学结果。可确认局部错码后恢复；未证明长期漂移/单一干扰根因。当前只建议同音量距离的安静对照，未改算法/应用/滤波，未重新安装。截图manifest/缩图/手工译文/计分/报告与MEMORY基线在`.local-backups/cw-screenshot-score-20261028-150814/`。
+
+- 最新用户纠正（2026-10-28）：错误不严重，只是偶发接错几个字，基本过几个字会自行恢复；替代上一轮“持续接收重大错误”的未定判断，不再按状态长期恶化或严重故障推进。当前唯一任务：用户要求生成已知CW音频方便核对正确率，复用packages/signal的编码/时间轴/包络及已有载波公式，输出15/20WPM、600Hz清洁WAV、标准答案和编辑距离比对工具，先跑既有native host解码器作数字输入对照；不修改/重装手机软件，不改算法，不新增产品服务/协议/录音。真实声学正确率待手机接收文本对照，数字回放通过不能替代手机麦克风结果。 已生成`data/cw-reference-20261028-145552/`：15WPM137.76秒/20WPM104.82秒、600Hz、22050mono S16LE WAV，前后各3秒静音，同正文135个非空格字符；答案/元数据/评分脚本/说明齐全。WAV解析、格式/时长/SHA校验通过，评分替换/漏字/多字小样例通过。原host harness数字对照20WPM逐字一致；15WPM首V→X，其他一致，CER0.741%，保留实际错误不调参。未播放音频或干扰手机采集，未改手机/算法。保护 .local-backups/cw-reference-20261028-145552。
+
+- 用户明确把目标纠正为手机软件（HarmonyOS 为例），用于检验 CW 实时解码算法；不是新增/改造桌面 GUI。当前 desktop GUI 已有实时解码能力，但依赖 Node/FFmpeg/外部 multimon-ng 进程，无法直接在手机运行。
+- 当前任务限定为只读解码检验器：手机麦克风 → 同一份 multimon-ng C 算法 → 实时显示原始译文与输入电平；不接 AI/ReplySession、QSO、账本、发射、设备控制、网络服务或音频持久化。它是本地验收辅助工具，不计入 0.0 自动发射产品范围。
+- 复用既有 multimon-ng 1.6.2 精确上游提交及 `patches/multimon-ng/multimon-threshold-hysteresis.patch`；不复制或替换 Morse 算法，也不改桌面 `runReceive` 主链。设计采用 Native `OH_AudioCapturer` + 有界 PCM 环形队列 + 单一解码 worker；ArkTS 负责权限/UI，N-API 负责异步控制与读取，不从音频回调调用 N-API。
+- 第二轮设计复核已在 host 范围通过（DSH审议、Codex核对 F1-F6），已进入实现。新增 `apps/harmony-cw`，复用锁定 vendored C 源码；主机 C++桥接与实际 patched CLI 字节对照已通过（有/无/合成尾静音、短/随机/单样本块、单实例、clear/finish状态）。证据 `native/build/logs/ctest.log`，CTest 1/1内含上述合同用例；不等于空口质量验收。
+- 首个未签名 ARM64 debug HAP 已构建（SDK 26.0.0.105），含权限/UI、Native采集/worker与N-API。DSH交叉审议完成、Codex修复停止重试/代次/资源失败边界并通过host回归；最终HAP重建exit0。限定离线交付，未签名，真机未验；完整结果见 [实施证据](docs/evidence/V00-02-F-Harmony手机端实时解码检验器.md)，下一步需要手机连接确认系统/API与签名安装条件。
+- 真机已识别（2026-10-28）：用户重新连接后，Windows HDC USB Connected；ALT-AL10 / 7.0.0.111(SP13C00E111R6P2)，API 26、aarch64，与HAP匹配。WSL HDC为空，改用已有Windows DevEco SDK hdc.exe，无需USB透传。现有开发profile公有元数据绑定另一个包com.example.smartsuitcase，不能直接用于org.cwstation.decoder；未读取私钥，当前待本应用调试签名，尚未安装/麦克风验证。用户告知已完成自动签名后，检查CW主工程及signing-project的signingConfigs仍为空；DevEco原显示旧harmonyos-build窗口。已重新打开并从IDE日志/UI窗口枚举确认signing-project完成识别；需要在该新窗口生成本包签名。Windows安全软件拦截自动界面操作，未绕过拦截。
+- 签名已完成（2026-10-28接续）：用户在正确工程生成default调试授权，公开profile元数据确认org.cwstation.decoder/1台设备。Codex仅在隔离signing-project内绑定product签名配置，Windows DevEco Hvigor构建exit0（51s696ms），产出 `entry/build/default/outputs/default/entry-default-signed.hap`，1543402字节，SHA256 `d5986a482ec7868bc3db530671be1ab251da82753ff912dcc36f012d81607536`。SDK verify-app exit0，codesign/digest/permission签名通过；关键源码与主工程SHA一致。未打印/复制私钥或密码到源码，签名配置/原始日志仅保留Git忽略的本地工作目录。
+- USB阻塞已恢复，应用已安装/启动（2026-10-28 14:36–14:38）：DSH复核后按微软WinUSB文档，对当前HDC实例Device Parameters补唯一缺失的REG_MULTI_SZ DeviceInterfaceGUIDs，先导出原键，不改驱动/ACL。首次脚本因PowerShell5.1不支持Set-Content -NoClobber在写注册表前停止；备份原脚本、修正后UAC执行exit0/REPAIR_COMPLETED，接口重启成功。HDC重新枚举后USB Connected；原签名HAP SHA仍d5986a48…07536，hdc install返回install bundle successfully，aa start EntryAbility/org.cwstation.decoder成功，进程PID63797。应用限定dumpLayout确认准备接收/0%/开始接收，未显示启动异常。真机已开始采集：UI显示正在接收/MIC·22050 Hz·单声道·S16LE·RAW，电平曾22%/峰值32%，有持续原算法译文；停止→已停止/开始按钮，随后再次采集已观察到。Home退后台再回前台显示已停止，最终留停止态。只验基础链路，未知声源电文准确性/权限拒绝/音频中断/长时稳定性未验；停止证据为UI与生产stop流程，不独立证明系统底层音频资源释放。已安装包系统路径sha256sum被权限拒绝，不声称目标包散列读取通过。保护/原键导出/审议/修复回退脚本/初始UI布局位于`.local-backups/harmony-usb-interface-20261028-143300/`；回退只删除本次新增且仍匹配的GUID值再重启。该补充针对当前实例/端口，不宣称所有USB断线根因已解决。
+- 真机接续保护/调试签名隔离目录：`.local-backups/harmony-device-20261028-135449`；其中 `signing-project` 仅为签名工具工作副本，源码真源仍为 `apps/harmony-cw`，不在副本开发。仅复制源码/原配置，不复制任何现有私钥或账号凭据。
+- 实现前保护 `.local-backups/harmony-implementation-20261028-132057/`（当前未提交diff、MEMORY/任务卡/审议副本、原ROADMAP及新增路径范围说明）；后续修正前的工程tar副本也在该目录。此前状态修正备份 `.local-backups/status-20261028-131309/` 保留。桌面/CLI主链、原解码器工作树、设备账本不改；新增一个只读手机HAP入口，无新服务、协议或持久化格式。
+- 初始保护基线 `6711b59` 当时工作区干净；本轮新增的任务卡及 MEMORY 修改当前未提交。第二阶段修改前备份位于 `.local-backups/20261028-v00-02-f-design-close/`。任务卡：[V00-02-F Harmony 手机端实时解码检验器](docs/tasks/V00-02-F-Harmony手机端实时解码检验器.md)。
+
 ## 解码器补丁补充入库（2026-10-28）
 
 用户要求补传外部 multimon-ng 改动，已将与原工作树一致的补丁、精确上游提交、许可证及构建说明纳入 `patches/multimon-ng/`。此前“补丁仅本机”的说明为历史状态，由本条替代。保护基线 `1496a96`（开始时工作区干净），原文档副本位于 `.local-backups/20261028-000856-decoder-patch-upload/`。只补齐现有成果的可复现材料，不改产品主链、进程、协议、记录格式或当前解码质量未验收状态；不连接设备。上传完成以远端提交核对为准。 本轮隔离应用检查通过，补丁生成文件与当前外部源码一致，Release构建通过、CTest 5/5（主要为FLEX，不构成CW质量验收）。

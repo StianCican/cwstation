@@ -20,7 +20,7 @@
 
 ## 当前主链路：单次设备试验
 
-当前已实现的设备执行基础为既有 `CwTrialSession`：一个设备会话、一次人工确认、一次固定短报文，复用相同的模拟/真实CI-V代码；不需要另启动daemon、SQLite或IPC设备服务。它尚非AI自动发报成品，新增工作以0.0冻结范围为准。默认 `bash rig.sh` 仍是只读监视。
+当前已实现的设备执行基础为既有 `CwTrialSession`：一个设备会话、一次人工确认、一次校验后的短报文，复用相同的模拟/真实CI-V代码；不需要另启动daemon、SQLite或IPC设备服务。它尚非AI自动发报成品，新增工作以0.0冻结范围为准。默认 `bash rig.sh` 仍是只读监视。
 
 ```bash
 npm run build
@@ -29,7 +29,9 @@ bash rig.sh --cw-trial --help
 bash rig.sh --cw-trial --simulate --simulate-confirm E --record-dir logs/cw-trial-simulation
 ```
 
-流程：八查询预检 → 人工确认（模拟为显式simulate-confirm）→ 重读核对 → intent刷盘 → 一次E/TEST → 停止请求 → 退出释放。`scripts/cw-trial.sh`仅作为此入口的兼容转发。真实设备仍需现场单独授权、显式端口与keying-off确认及交互TTY，本次整顿不执行真实试验。
+流程：八查询预检 → 人工确认（模拟为显式simulate-confirm）→ 重读核对 → intent刷盘 → 一次校验后的短报文 → 停止请求 → 退出释放。`scripts/cw-trial.sh`仅作为此入口的兼容转发。真实设备仍需现场单独授权、显式端口与keying-off确认及交互TTY，本次整顿不执行真实试验。
+
+`--message` 默认为 `E`，可指定1～30字节的大写 ASCII 短报文：字母、数字、内部空格及 Command 17 支持的 `" ' ( ) + , - . / : = ? @`。拒绝小写、首尾空白、控制字符、非ASCII和连续键控符 `^`，不自动转换或截断。真实入口要求完整键入确切正文；模拟的 `--simulate-confirm` 同样必须逐字匹配。自定义正文已实现，离线及现场验收状态见 [MEMORY](MEMORY.md)。AI回复绑定和GUI仍仅允许模拟。
 
 可选`--estimated-wpm <6..48>`沿同一runner增加估算收尾：收到发送应答后，按最终正文复用现有Morse时间轴，等待估算时长×1.25＋500ms，再每100ms观察RX，连续采样满足600ms后请求原停止并退出。额外观察上限5秒，TX/超过300ms的观测空档重置稳定窗；超时/异常非零退出，Ctrl+C取消等待并走原停止/关闭（在途查询最多等待原查询超时）。查询失败仍按原规则锁定/关闭会话，此时停止可能unavailable，不能保证停止帧写出或电台停发。速度由操作人提供，应不高于实际有效键速；程序未读取或设置电台速度，系数/余量未做硬件校准。此项结果始终标为`completion=unknown`，不能证明起发、整条完成或物理停发，不自动解除intent。开启时原记录追加一条send_result保存估算观测，无新schema；默认不启用，不改变GUI真实发送禁用状态。
 
@@ -114,7 +116,7 @@ node dist/apps/cwrig.js receive --decoder <multimon-ng> --pcm-s16le capture.s16l
 - 实际执行复用 `apps/rig-cw-trial.ts` 的 `runCwTrial`/`CwTrialSession`/模拟 transport，不复制预检、确认后重读、intent fsync、一次发送、停止或关闭循环；仍为 16 条预检查询、一次 Command 17 正文和一次停止。进入该模式的完成状态行标记 `readOnly:false`，表示本次会话不再是纯只读收报；`replyTrial.performed` 只表示已进入 `runCwTrial`，是否实际写入正文看 `exitCode` 与记录，不能用 `performed:true` 单独证明已派发。
 - 提案只在进程内绑定：正文再次经过大写/字符/长度校验；记录继续使用既有 schema 的 `message:null`，在 `detail` 保存精确正文、`sessionId`、`turnId`、`revision` 和既有帧信息。不改记录格式、不删记录；同目录未解决 intent 仍阻断重跑。
 - 提案绑定保留当前有效性检查；确认后重读、意图落盘后均再次检查。收报入口取消会中止等待中的确认，不能在取消后补输入而恢复派发。
-- 真实入口与既有 E/TEST 试验限制不变；本路径不向真实入口开放任意文本，也不打开串口或调用真实模型。退出码沿用 `runCwTrial`（0 成功、2 用法/无 TTY、3 未确认/拒绝、4 预检拒绝、5 上下文变化、6 关闭未确认、7 发送/停止未观察到应答）。
+- 本回复绑定路径仍只允许模拟，不打开串口或调用真实模型；独立人工 `--cw-trial --message` 的自定义短报文规则见上方。退出码沿用 `runCwTrial`（0 成功、2 用法/无 TTY、3 未确认/拒绝、4 预检拒绝、5 上下文变化、6 关闭未确认、7 发送/停止未观察到应答）。
 
 本切片最终验收：受影响专项49/49、build通过；编译CLI+既有真实multimon/PCM解出CQ TEST，经本地mock回复及PTY完整正文确认，将B1AA DE B2BB K交给既有模拟发送/停止/关闭，exit0，记录完整。未调用真实模型或电台，不代表真实发射或完整QSO。见[03-B证据](docs/evidence/V00-03-B-回复衔接模拟发送.md)。
 
@@ -146,7 +148,7 @@ node dist/apps/cwrig.js receive --decoder <multimon-ng> --pcm-s16le capture.s16l
 
 03-D整句预测曾作为机制实验限定验收，真实适用性未验；其AI候选语义已由03-E替换，历史边界见[03-D证据](docs/evidence/V00-03-D-预备回复与人工编辑.md)。03-E已在同一prepared入口接入严格CQ本地快速回复，非命中仍走原AI，并复用既有EDIT与一次模拟发送runner。定向专项38/38、build通过；不代表真实命中率或整体空口提速。规则、限制和验证记录见[03-E证据](docs/evidence/V00-03-E-CQ快速回复模板.md)。
 
-仅PCM文件加原`--reply-trial-simulate --reply-trial-record-dir <原记录目录>`及交互TTY时，可把正常EOF的最后一条当前有效reply交给同一runner模拟发送一次；前面各轮只是NOT SENT提案，end/超限/取消不发送。不会为多轮发送清除intent或更换目录。真实E/TEST白名单不变。
+仅PCM文件加原`--reply-trial-simulate --reply-trial-record-dir <原记录目录>`及交互TTY时，可把正常EOF的最后一条当前有效reply交给同一runner模拟发送一次；前面各轮只是NOT SENT提案，end/超限/取消不发送。不会为多轮发送清除intent或更换目录。回复绑定仍只允许模拟；独立人工试验正文规则见上方。
 
 模拟回复确认可输入`EDIT <大写CW正文>`修改当前草稿，再完整键入展示的最终正文确认。正文仍不得超过30字节，不允许`^`；非法编辑不会发送。AI不覆盖人工草稿，失效/取消会撤销派发资格，记录与设备帧使用最终确认正文；这不是已经发送内容的撤回功能。CLI现有入口先接通，GUI尚未实现。
 

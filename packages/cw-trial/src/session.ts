@@ -4,7 +4,7 @@
 //  - 一个实例独占注入 transport、一个 CivFrameParser、一个在途查询槽；不打开
 //    串口、不提供任意字节构造器、不自动重试或重连。
 //  - 预检固定八查询：显示 03/04 加六项上下文 1C03/1C00/0F/2101/2102/1647。
-//  - 发送只接受固定报文 "E" / "TEST"；停止只接受 Command 17 的 FF。
+//  - 发送复用 Command 17 planner 校验短报文；CLI另施加大写及禁用连续键控限制；停止为 FF。
 //  - OK(0xFB) 只表示 ack_observed，绝不推断完成或停止；超时/写失败保持
 //    unknown。一次会话最多发送一次，但仍可停止和关闭。
 //  - 本模块不从 index 导出，不接 serial/IPC/service/rig.sh；真实串口由 app
@@ -68,7 +68,7 @@ export interface CwTrialReceiveWindow {
   readonly detail: string;
 }
 
-/** 唯一允许的两次真实短报文；"^" 连续键控不在其中。 */
+/** 兼容保留的历史试验示例；当前正文由调用方及发送 planner 校验，并非白名单。 */
 export const CW_TRIAL_MESSAGES = Object.freeze(["E", "TEST"] as const);
 export type CwTrialMessage = string;
 
@@ -338,10 +338,11 @@ export class CwTrialSession {
   private readonly transport: CivTransport;
   private readonly queryTimeoutMs: number;
   private readonly closeTimeoutMs: number;
-  private readonly parser = new CivFrameParser();
+  private readonly parser = new CivFrameParser({ maxFrameBytes: 36 });
   private readonly dataUnsubscribe: (() => void) | null;
   private readonly closeUnsubscribe: (() => void) | null;
 
+  private readonly lifecycle = new AbortController();
   private phase: CwTrialPhase = "idle";
   private error: string | null = null;
   private closeConfirmed = false;
@@ -443,7 +444,7 @@ export class CwTrialSession {
   }
 
   /**
-   * 写出一次固定短报文并等待 FB/FA。只允许在成功读取上下文后调用一次；
+   * 写出一次经 planner 校验的短报文并等待 FB/FA。只允许在成功读取上下文后调用一次；
    * 返回的 outcome 永不声称报文已完成。
    */
   async sendMessage(message: string): Promise<CwTrialSendResult> {
@@ -524,19 +525,28 @@ export class CwTrialSession {
     if (this.acknowledgedMessage !== message || this.stopAttempted || this.phase !== "sent") {
       throw new CivSessionError("estimated RX window requires an unstopped send attempt");
     }
+    const waitSignal = signal === undefined ? this.lifecycle.signal
+      : AbortSignal.any([signal, this.lifecycle.signal]);
+    const wait = async (ms: number): Promise<void> => {
+      try { await delay(ms, undefined, { signal: waitSignal }); }
+      catch (error) {
+        if (waitSignal.aborted) throw waitSignal.reason;
+        throw error;
+      }
+    };
     const minimumMs = estimateCwTrialWindow(message, wpm);
-    await delay(minimumMs, undefined, { signal });
+    await wait(minimumMs);
     const deadline = performance.now() + 5_000;
     let rxSince: number | null = null;
     let previousSampleAt: number | null = null;
     const plan = planContextRead("txStatus");
     while (performance.now() < deadline) {
-      signal?.throwIfAborted();
+      waitSignal.throwIfAborted();
       if (this.stopAttempted || this.phase !== "sent") throw new CivSessionError("RX observation interrupted by stop/close");
       const reading = await this.performRead("estimated RX observation", Uint8Array.from(plan.bytes), 0x1c,
         frame => decodeContextReadResponse("txStatus", frame),
         Math.max(1, Math.min(this.queryTimeoutMs, Math.ceil(deadline - performance.now()))));
-      signal?.throwIfAborted();
+      waitSignal.throwIfAborted();
       if (this.stopAttempted || this.phase !== "sent") throw new CivSessionError("RX observation interrupted by stop/close");
       const sampledAt = performance.now();
       if (sampledAt >= deadline) break;
@@ -550,7 +560,7 @@ export class CwTrialSession {
             detail: `estimated window=${minimumMs}ms at ${wpm}WPM then sampled RX for >=600ms; TX start, message completion and physical stop remain unknown` };
         }
       } else rxSince = null;
-      await delay(100, undefined, { signal });
+      await wait(100);
     }
     return { outcome: "observation_timeout", completion: "unknown",
       detail: "no stable sampled RX window within 5000ms after estimate; completion and physical stop remain unknown" };
@@ -746,6 +756,7 @@ export class CwTrialSession {
     if (this.isTerminal()) return;
     this.phase = "locked";
     this.recordError(errorMessage(error));
+    this.lifecycle.abort(error);
     this.rejectPending(error);
     this.detach();
     void this.beginClose(true).catch(() => undefined);
@@ -771,6 +782,9 @@ export class CwTrialSession {
       if (faultError !== undefined) this.recordError(errorMessage(faultError));
     } else if (this.phase !== "locked" && this.phase !== "closed") {
       this.phase = "closing";
+    }
+    if (!this.lifecycle.signal.aborted) {
+      this.lifecycle.abort(faultError ?? new CivSessionError("CW trial session closing; RX observation cancelled"));
     }
     this.rejectPending(
       new CivSessionError(

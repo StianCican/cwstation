@@ -90,7 +90,7 @@ export function createCwTrialSimulatorTransport(
   const closeListeners = new Set<(error?: Error) => void>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const requests: Uint8Array[] = [];
-  const parser = new CivFrameParser();
+  const parser = new CivFrameParser({ maxFrameBytes: 36 });
   let closed = false;
 
   function emitSequentially(bytes: readonly number[]): void {
