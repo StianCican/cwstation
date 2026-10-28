@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "0.1.0",
+  "description": "CW microphone decoder",
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "libcwdecoder.so": "file:./src/main/cpp/types/libcwdecoder"
+  }
+}

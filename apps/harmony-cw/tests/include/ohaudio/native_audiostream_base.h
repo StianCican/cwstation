@@ -1,0 +1,77 @@
+// Minimal host-test projection of the HarmonyOS ohaudio base header.
+// Values mirror the API 26 SDK declarations used by capture_session.cpp.
+// This is a link-time test double only; it is not a device audio backend.
+#ifndef CW_TESTS_OHAUDIO_NATIVE_AUDIOSTREAM_BASE_H_
+#define CW_TESTS_OHAUDIO_NATIVE_AUDIOSTREAM_BASE_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+  AUDIOSTREAM_SUCCESS = 0,
+  AUDIOSTREAM_ERROR_INVALID_PARAM = 1,
+  AUDIOSTREAM_ERROR_ILLEGAL_STATE = 2,
+  AUDIOSTREAM_ERROR_SYSTEM = 3,
+  AUDIOSTREAM_ERROR_UNSUPPORTED_FORMAT = 4,
+} OH_AudioStream_Result;
+
+typedef enum {
+  AUDIOSTREAM_TYPE_INVALID = -1,
+  AUDIOSTREAM_TYPE_RENDERER = 1,
+  AUDIOSTREAM_TYPE_CAPTURER = 2,
+} OH_AudioStream_Type;
+
+typedef enum {
+  AUDIOSTREAM_STATE_INVALID = -1,
+  AUDIOSTREAM_STATE_NEW = 0,
+  AUDIOSTREAM_STATE_PREPARED = 1,
+  AUDIOSTREAM_STATE_RUNNING = 2,
+  AUDIOSTREAM_STATE_STOPPED = 3,
+  AUDIOSTREAM_STATE_RELEASED = 4,
+  AUDIOSTREAM_STATE_PAUSED = 5,
+} OH_AudioStream_State;
+
+typedef enum {
+  AUDIOSTREAM_SAMPLE_U8 = 0,
+  AUDIOSTREAM_SAMPLE_S16LE = 1,
+  AUDIOSTREAM_SAMPLE_S24LE = 2,
+  AUDIOSTREAM_SAMPLE_S32LE = 3,
+  AUDIOSTREAM_SAMPLE_F32LE = 4,
+} OH_AudioStream_SampleFormat;
+
+typedef enum {
+  AUDIOSTREAM_ENCODING_TYPE_RAW = 0,
+  AUDIOSTREAM_ENCODING_TYPE_AUDIOVIVID = 1,
+} OH_AudioStream_EncodingType;
+
+typedef enum {
+  AUDIOSTREAM_SOURCE_TYPE_INVALID = -1,
+  AUDIOSTREAM_SOURCE_TYPE_MIC = 0,
+  AUDIOSTREAM_SOURCE_TYPE_VOICE_RECOGNITION = 1,
+} OH_AudioStream_SourceType;
+
+typedef enum {
+  AUDIOSTREAM_INTERRUPT_FORCE = 0,
+  AUDIOSTREAM_INTERRUPT_SHARE = 1,
+} OH_AudioInterrupt_ForceType;
+
+typedef enum {
+  AUDIOSTREAM_INTERRUPT_HINT_NONE = 0,
+  AUDIOSTREAM_INTERRUPT_HINT_RESUME = 1,
+  AUDIOSTREAM_INTERRUPT_HINT_PAUSE = 2,
+  AUDIOSTREAM_INTERRUPT_HINT_STOP = 3,
+  AUDIOSTREAM_INTERRUPT_HINT_DUCK = 4,
+  AUDIOSTREAM_INTERRUPT_HINT_UNDUCK = 5,
+  AUDIOSTREAM_INTERRUPT_HINT_MUTE = 6,
+  AUDIOSTREAM_INTERRUPT_HINT_UNMUTE = 7,
+} OH_AudioInterrupt_Hint;
+
+typedef struct OH_AudioStreamBuilderStruct OH_AudioStreamBuilder;
+typedef struct OH_AudioCapturerStruct OH_AudioCapturer;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // CW_TESTS_OHAUDIO_NATIVE_AUDIOSTREAM_BASE_H_

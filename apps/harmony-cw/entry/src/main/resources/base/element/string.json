@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "在本机实时检验 CW 解码效果"
+    },
+    {
+      "name": "microphone_reason",
+      "value": "接收扬声器播放的 CW 声音并在本机解码"
+    }
+  ]
+}

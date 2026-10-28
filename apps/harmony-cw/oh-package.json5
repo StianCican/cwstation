@@ -1,0 +1,8 @@
+{
+  "name": "cw-decoder",
+  "version": "0.1.0",
+  "description": "Local CW decoder verification",
+  "license": "GPL-2.0-or-later",
+  "dependencies": {},
+  "modelVersion": "6.26.0"
+}
