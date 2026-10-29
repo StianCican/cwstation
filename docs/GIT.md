@@ -2,6 +2,12 @@
 
 当前可见性：2026-10-27按用户明确要求，原 `StianCican/cwstation` 仓库已转为公开，GitHub查询确认PUBLIC；下方私有描述保留为首次上传历史。
 
+## 手机测试版同步（2026-10-29）
+
+用户授权上传鸿蒙与Android软件。沿现有main同步两端源码/600Hz补丁及任务证据，并在`mobile-cw-20261029`预发布提供Android APK、HarmonyOS未签名HAP、完整相关源码ZIP、安装说明和SHA256SUMS。鸿蒙设备绑定签名配置/profile与私钥留在本地，公开HAP需使用者自行签名。此发布不表示0.0自动发射验收完成。最终远端提交/资产核验状态见MEMORY顶部。
+
+修改前保护`.local-backups/mobile-github-20261029-223356/`含完整Git bundle、dirty差异和未跟踪文件归档。沿用既有构建/专项证据；仅上传不重复产品测试或设备操作。
+
 ## GitHub 上传（2026-10-23）
 
 用户要求上传至StianCican账号。目标仓库为`https://github.com/StianCican/cwstation`，默认私有，沿现有main及完整历史，不做0.0发布或标签。当前推送状态以MEMORY顶部为准；本地提交不等于远端上传成功。

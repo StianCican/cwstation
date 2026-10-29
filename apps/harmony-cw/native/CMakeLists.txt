@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CW_VENDOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/multimon-ng")
 
+# 0 = legacy desktop/envelope path; 600 = phone target-tone frontend.
+set(CW_TARGET_TONE_HZ "0" CACHE STRING "Compile-time CW target tone in Hz (0 disables)")
+
 find_package(Threads REQUIRED)
 
 # 必须指向已应用 patches/multimon-ng/multimon-threshold-hysteresis.patch 的
@@ -26,8 +29,8 @@ target_include_directories(cw_decoder
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
   PRIVATE "${CW_VENDOR_DIR}"
 )
-target_compile_definitions(cw_decoder PRIVATE MAX_VERBOSE_LEVEL=3 NO_X11)
-target_link_libraries(cw_decoder PUBLIC Threads::Threads)
+target_compile_definitions(cw_decoder PRIVATE MAX_VERBOSE_LEVEL=3 NO_X11 CW_TARGET_TONE_HZ=${CW_TARGET_TONE_HZ})
+target_link_libraries(cw_decoder PUBLIC Threads::Threads m)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(cw_decoder PRIVATE -Wall -Wextra)

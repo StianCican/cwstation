@@ -1,6 +1,33 @@
 # CW Station 项目记忆
 
-更新日期：2026-10-28。
+更新日期：2026-10-29。
+
+## 当前任务：手机双端GitHub同步（2026-10-29，发布准备）
+
+- 用户明确要求把鸿蒙和Android软件上传GitHub。目标为现有公开仓库StianCican/cwstation的main与mobile-cw-20261029预发布；源码推送加APK/未签名HAP/对应源码/校验说明。鸿蒙本机绑定设备的签名HAP/profile不上传，公开HAP需用户自行签名。不是0.0产品发布。
+- 开始时main79461d8领先origin2提交，已有手机源码/文档dirty；保护`.local-backups/mobile-github-20261029-223356/`含完整repository-before.bundle、dirty-before.patch、未跟踪源码/无关简报归档与状态副本。无关社团进度简报不纳入本次提交。沿原Git入口，无代码改动/硬件/录音/全仓重测。
+- 发布包本地SHA与既有验收产物一致，最终推送/预发布资产验证完成后更新本条；准备不等于已经上传。
+
+## 当前任务：Android CW只读解码检验器（2026-10-29，限定离线已交付/待Android真机）
+
+- 用户要求多品牌较新Android，已按target/compile36（Android16）/min26（Android8）、ARM64+ARM32构建APK；同一应用内只AudioRecord/JNI/前台原文UI，CMake按原路径编译现有CwDecoder与third_party/demod_morse、600Hz宏，没有复制/迁移算法或改鸿蒙主链。只RECORD_AUDIO，无网络/录音/AI/发射/服务/新持久化。原设备USB/RF任务继续暂停。
+- 用户桌面8图已手工合并计分：安静15/20WPM CER28.148%/6.667%，干扰15/20为22.963%/20.741%，全135字符、重叠不重复、失败<...>按一字符。源图SHA/安全缩图/转写/评分在`.local-backups/android-cw-20261029-215910/`；安静15更差、20较好、干扰接近旧值，非同PCM A/B，不宣称已调好或因果改善。用户要求先交付Android，故不叠加时序/门限调参。
+- 实际APK构建exit0，JNI host真实生产适配与共享核心：实例/无效参数/feed/drain/finish/clear/stale handle专项通过，标准20WPM135非空格逐字一致。APK签名v2/zipalign16KB/两ABI ELF16384对齐通过；lint缺依赖联网补齐后检出两项错误，原地修复权限再检查与API26主题属性，最终exit0、0错误20警告。多品牌AudioRecord/权限/后台/音源DSP/格式支持/准确性/长期稳定性未验，目前ADB无设备，未安装Android手机。
+- Android平台局部修正：公开AudioManager属性探测UNPROCESSED、可见MIC回退、严格格式回读、前台/权限门禁；原文UTF8/有界显示截断计数；stop/start/release每run锁、read锁外，进程采集slot跨Activity保留，停止3秒不完成提示未知、不强销资源。与系统长时阻塞相关的释放仍待实际手机，不外推host为真机。
+- 交付路径`data/android-cw-20261029/cw-decoder-600hz.apk`，1171679字节，SHA256 `f20f388d787b12edfc8b59762002b52f0e7c4b5b1fa094f74fd3ee7bcf877115`；同目录完整相关源码zip/manifest/中文说明。源码在`apps/android-cw`。详见[V00-02-G证据](docs/evidence/V00-02-G-Android手机解码检验器.md)。
+- 保护：Git79461d8且已有dirty，`.local-backups/android-cw-20261029-215910/dirty-before.patch`及before/、android-dsh-handoff.tar/android-pre-final-review.tar保留修改前状态；Android路径创建前不存在，已有鸿蒙包/账本不动。NDK/CMake下载镜像并按官方XML大小/SHA1验证，装原WSL SDK，不装C盘/改系统代理。DSH实现后交接Codex修正审查；DSH“核心文本无mutex”不成立（text_mutex存在），stop/release顺序风险已修复；全部日志保留，不把超时或不准确报告当验收。没有提交/推送，其他会话社团进度简报未修改。
+
+## 当前任务：手机600 Hz目标音调前端（2026-10-29，新版已安装/待手机试听）
+
+- 最新真机接续（2026-10-29）：用户连接手机，Windows HDC识别原22M0223928011053；核对本地最终HAP SHA仍2085048da762dbf5a78ed3ea90cb91c1d26ec705c2369c485b399adf6b6eb927后，原地install -r返回install bundle successfully，aa start成功。前后UID20020369/首次installTime1793165831005不变，updateTime更新1793276159383；仅证明原地更新/启动，不声称设备安装文件SHA可读。UI布局显示准备接收、0%/峰值0%、开始接收，未开启麦克风/播放音频/录音；新版实际声学质量仍待用户用原600Hz15/20WPM对照。此前HDC Empty/未安装为上一阶段历史，由本条替代。
+- 用户明确后续顺序：先调好当前鸿蒙手机解码，再做安卓版；复用同一multimon补丁和既有解码桥接，Android仅做平台采集/JNI/UI适配，不另起Morse算法。安卓尚未实施，不作为本轮前置任务。
+- 本次安装前保护：`.local-backups/harmony-tone-install-20261029-211544/dirty-before.patch`及四份状态文档和未跟踪benchmark副本；旧HAP/签名副本仍由上一轮before.tar与signing-project-before.tar保护。install/start日志、前后bundle/启动UI布局在同目录。只改当前状态记录，无源码改动/无需重跑离线测试或构建。
+
+- 用户已同意并完成第一项限定增量：原手机采集→worker→CwDecoder→同一multimon补丁，在原包络前启用600 Hz/Q5窄带前端；原码速/门限/字符表/界面不改，桌面默认仍旧行为。无新入口/进程/协议/持久化，无第二解码器、录音或文字纠错。设备发射/USB任务继续暂停，未开串口/发射/核查intent。
+- 同PCM全135字符：干净15WPM仍首V→X，CER0.741%；20WPM0%；新宏0与既有旧harness字节相同。590/610Hz均0%；叠加1000/1500Hz连续合成干扰，旧版34替换/101漏字、CER100%，新版0%。双配置CLI/bridge/EOF/分块及生产采集worker专项通过；不是手机人声或真实声学验收，也未修复原15WPM启动错误。
+- 最终WSL/Windows HAP构建和SDK验签exit0，包内来源SHA已同步；最终签名HAP `.local-backups/harmony-tone-20261029-021422/cw-decoder-600hz-final-signed.hap`，SHA256 `2085048da762dbf5a78ed3ea90cb91c1d26ec705c2369c485b399adf6b6eb927`。关键源码及600宏与主工程一致，签名副本仅打包用途。上一阶段HDC [Empty]现已被顶部安装记录替代，新版已原地安装启动。下一步原600Hz标准音频试听，不自动推进时序或录音。
+- DSH v1实现/测试构建中300秒超时无完整报告；v2只读审议exit0，所列缺口已由Codex完成最终对照/来源修正关闭。DSH关于CER/前导丢字的错误概括未采纳，以保存的译文/评分为准。详见[V00-02-F证据](docs/evidence/V00-02-F-Harmony手机端实时解码检验器.md)。
+- 保护：Git干净基线79461d8；`.local-backups/harmony-tone-20261029-021422/before.tar`保存源码/旧构建/补丁/状态文档，`signing-project-before.tar`保存原签名副本/旧HAP；最终日志/译文/评分/artifact SHA在同目录。未提交或推送。基础真机安装采集及10月28日计分历史仍有效，新版准确率/长时/权限拒绝和音频中断待验。
 
 ## 当前事实：CW 自定义短报文原链离线验收完成（2026-10-28）
 

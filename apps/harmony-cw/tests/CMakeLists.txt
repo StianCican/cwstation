@@ -33,9 +33,10 @@ target_include_directories(capture_session_host_test PRIVATE
 target_compile_definitions(capture_session_host_test PRIVATE
   MAX_VERBOSE_LEVEL=3
   NO_X11
+  CW_TARGET_TONE_HZ=600
 )
 
-target_link_libraries(capture_session_host_test PRIVATE Threads::Threads)
+target_link_libraries(capture_session_host_test PRIVATE Threads::Threads m)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(capture_session_host_test PRIVATE -Wall -Wextra)

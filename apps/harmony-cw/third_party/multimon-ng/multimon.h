@@ -248,6 +248,13 @@ struct demod_state {
             int_fast32_t noise_floor;
             int_fast32_t threshold_on;
             int_fast32_t threshold_off;
+            /*
+             * Optional target-tone frontend state.  Kept unconditionally so
+             * every translation unit sees the same struct layout; only
+             * compiled users with CW_TARGET_TONE_HZ > 0 read/write it.
+             */
+            double tone_b0, tone_b1, tone_b2, tone_a1, tone_a2;
+            double tone_z1, tone_z2;
             int_fast32_t glitches;
             int_fast32_t erroneous_chars;
             int_fast32_t decoded_chars;

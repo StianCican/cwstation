@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cw_bg">#102D32</color>
+    <color name="cw_panel">#18383D</color>
+    <color name="cw_deep">#0A2328</color>
+    <color name="cw_teal">#65DFBB</color>
+    <color name="cw_cream">#F0F5EE</color>
+    <color name="cw_muted">#A7BFBD</color>
+    <color name="cw_faint">#789A9A</color>
+    <color name="cw_warning">#FFD192</color>
+    <color name="cw_line">#30484B</color>
+    <color name="cw_small_button">#28474B</color>
+    <color name="cw_button_text">#0B292D</color>
+</resources>

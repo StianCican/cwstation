@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define FREQ_SAMP  22050
 
@@ -20,6 +21,61 @@
 #define MIN_SIGNAL_MARGIN 400
 #define HOLDOFF_MS 10               // Compensate for ringing
 #define AUTO_THRESHOLD_MULT 1/2
+
+/*
+ * Optional target-tone frontend.  CW_TARGET_TONE_HZ is a compile-time
+ * constant: 0 disables the frontend and leaves the historical rectifier
+ * input path unchanged.  A non-zero value inserts one sample-continuous
+ * RBJ band-pass biquad (0 dB peak gain, Q = 5) before the existing
+ * rectification / low-pass envelope.  At Q = 5 the -3 dB bandwidth is
+ * f0/5 (120 Hz at 600 Hz) and the group delay at the centre is about
+ * 1/(pi*BW) ~= 2.7 ms, well below one 20 WPM dit (60 ms).  Coefficients
+ * and state live in demod_state and are initialised by morse_init().
+ */
+#ifndef CW_TARGET_TONE_HZ
+#define CW_TARGET_TONE_HZ 0
+#endif
+
+#if CW_TARGET_TONE_HZ > 0
+#define CW_TONE_Q 5.0
+
+/* RBJ audio-EQ-cookbook band-pass (constant 0 dB peak gain). */
+static inline void morse_tone_init(struct demod_state * restrict const s)
+{
+    const double pi = 3.14159265358979323846;
+    const double w0 = 2.0 * pi * (double)CW_TARGET_TONE_HZ / (double)FREQ_SAMP;
+    const double cos_w0 = cos(w0);
+    const double alpha = sin(w0) / (2.0 * CW_TONE_Q);
+    const double a0 = 1.0 + alpha;
+    s->l1.morse.tone_b0 = alpha / a0;
+    s->l1.morse.tone_b1 = 0.0;
+    s->l1.morse.tone_b2 = -alpha / a0;
+    s->l1.morse.tone_a1 = -2.0 * cos_w0 / a0;
+    s->l1.morse.tone_a2 = (1.0 - alpha) / a0;
+    s->l1.morse.tone_z1 = 0.0;
+    s->l1.morse.tone_z2 = 0.0;
+}
+
+/*
+ * Input is S16; output is clamped to the same S16 domain so the existing
+ * int_fast32 envelope arithmetic cannot overflow.  The RBJ band-pass is
+ * stable (poles inside the unit circle) with unity centre gain, so the
+ * clamp only bounds transient ringing from finite double state.
+ */
+static inline int_fast32_t morse_tone_filter(struct demod_state * restrict const s,
+                                             const int_fast32_t sample)
+{
+    const double x = (double)sample;
+    const double y = s->l1.morse.tone_b0 * x + s->l1.morse.tone_z1;
+    s->l1.morse.tone_z1 = s->l1.morse.tone_b1 * x
+                          - s->l1.morse.tone_a1 * y + s->l1.morse.tone_z2;
+    s->l1.morse.tone_z2 = s->l1.morse.tone_b2 * x
+                          - s->l1.morse.tone_a2 * y;
+    if (y > 32767.0) return 32767;
+    if (y < -32768.0) return -32768;
+    return (int_fast32_t)y;
+}
+#endif
 
 #define DEBUG 0
 #define SHOW_FAILED_DECODES 1
@@ -256,9 +312,13 @@ static void morse_demod(struct demod_state * restrict const s,
 {
     for(int i = 0; i < length; i++)
     {
+        int_fast32_t input = (int_fast32_t)buffer.sbuffer[i];
+#if CW_TARGET_TONE_HZ > 0
+        input = morse_tone_filter(s, input);
+#endif
         // A low-pass is nice, though we could add a high-pass in order to get a band-pass :)
         // abs() when combined with the low-pass works as a peak detector
-        s->l1.morse.filtered = low_pass(s->l1.morse.filtered, (int_fast32_t)abs(buffer.sbuffer[i]) * GAIN,
+        s->l1.morse.filtered = low_pass(s->l1.morse.filtered, (int_fast32_t)abs(input) * GAIN,
                                        s->l1.morse.lowpass_strength);
         
         // Don't count too far
@@ -356,6 +416,9 @@ static void morse_init(struct demod_state * restrict s)
     int gap_length = cw_gap_length;
 
     memset(&s->l1.morse, 0, sizeof(s->l1.morse));
+#if CW_TARGET_TONE_HZ > 0
+    morse_tone_init(s);
+#endif
     /* The CLI validates these, but keep the demodulator safe for direct users. */
     if (dit_length < 1 || dit_length > 1000)
         dit_length = 50;

@@ -10,9 +10,15 @@
 bash apps/harmony-cw/build.sh
 ```
 
-其他环境设置 `HARMONY_CLT_HOME` 指向已有的 command-line-tools。本工程不自动安装 SDK。当前构建为未签名 debug HAP，不等于可直接安装；设备签名、授权与安装必须在连接目标手机后验证。不要把私钥、证书、签名密码或 provisioning profile 提交到仓库。
+其他环境设置 `HARMONY_CLT_HOME` 指向已有的 command-line-tools。本工程不自动安装 SDK。本命令产出未签名 debug HAP，不等于可直接安装；本机调试签名在既有隔离工作副本完成，源码真源仍是本目录。设备签名、授权与安装以项目MEMORY最新记录为准。不要把私钥、证书、签名密码或 provisioning profile 提交到仓库。
 
 主机解码对照按 [native/README.md](native/README.md)；依赖项目现有 dist/packages/signal 来临时合成标准 PCM。生成音频不进入 HAP。
+
+## 600 Hz 试听构建（2026-10-29）
+
+本轮手机构建已在同一 multimon-ng 的原整流包络前启用600 Hz目标音调检测（Q=5，约120 Hz带宽）。测试音频或电台侧音应设为600 Hz；本版不自动找音调，其他音调可能被衰减。采集、原码速/阈值、字符表和原文显示沿用既有实现。桌面解码器未替换，补丁默认关闭此选项。
+
+同输入主机对照和手机试听的状态以项目MEMORY及V00-02-F证据最新段为准，合成干扰改善不代表手机人声干扰已验收。
 
 ## 操作与限制
 
@@ -20,7 +26,7 @@ bash apps/harmony-cw/build.sh
 
 严格要求实际 22050 Hz / mono / S16LE / RAW / MIC，设备不支持时释放报错，不静默改变格式。系统 MIC 音频处理仍可能影响解码效果。0.5 秒合成尾静音可能让被打断的不完整字符也形成输出，译文原样保留。
 
-目标手机由用户报告为 Mate X5 / “鸿蒙7”；实际系统/API、签名安装、权限、采样格式、后台释放与实时 CW 质量均待真机验收。完整状态见项目 MEMORY.md 顶部和 docs/evidence/V00-02-F-Harmony手机端实时解码检验器.md。
+目标手机由用户报告为 Mate X5 / “鸿蒙7”；2026-10-28已识别API26并完成初版签名安装、实际采集与退后台停止的基础验证；新600 Hz构建的手机准确性及权限拒绝/音频中断/长期稳定性仍待真机验收。完整状态见项目 MEMORY.md 顶部和 docs/evidence/V00-02-F-Harmony手机端实时解码检验器.md。
 
 ## 源码与许可
 

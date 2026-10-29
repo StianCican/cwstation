@@ -1,5 +1,88 @@
 # V00-02-F Harmony 手机端实时解码检验器实施证据
 
+## TONE-600 真机原地安装与启动（2026-10-29）
+
+用户连接手机并要求本版调好后再做Android。当前只完成鸿蒙新版安装/启动，不提前实施Android或重开算法选型。
+
+- HDC识别原目标22M0223928011053，读取原bundle后确认org.cwstation.decoder存在。修改前dirty补丁、四份状态文档和未跟踪benchmark副本保存于`.local-backups/harmony-tone-install-20261029-211544/`；旧签名HAP仍在上一轮`signing-project-before.tar`，未卸载或清数据。
+- 本地待装HAP SHA256再次确认`2085048da762dbf5a78ed3ea90cb91c1d26ec705c2369c485b399adf6b6eb927`，Windows HDC `install -r`返回`install bundle successfully`；`aa start -a EntryAbility -b org.cwstation.decoder`返回`start ability successfully`。
+- 前后UID均20020369、installTime均1793165831005，updateTime从1793165831005到1793276159383；版本仍0.1.0/1000000，所以版本号本身不能区分新旧算法。本地精确HAP安装命令/成功结果及更新时刻是本次部署证据，不宣称设备安装文件SHA核对。
+- 启动后限定UI布局显示“准备接收”“0% / 峰值0%”“麦克风·本机处理”“开始接收”。未点击接收、未播放音频、未录音；新版手机600Hz声学准确性仍待用户试听，不能把启动成功当作解码质量通过。保留应用前台准备态供用户操作。
+- 无产品源码改变，沿用最终离线/编译/验签证据，不机械重跑。无电台/RF/账本操作。安装/start日志、前后bundle和启动布局保留上述备份目录。下一步原15/20WPM600Hz标准音频同音量距离，安静/人声条件分别比较；Android只作为本版调好后的明确后续项。
+
+下方“未连接/未安装”仅对应离线交付时刻，已由本段安装证据替代。
+
+
+## TONE-600 v1：限定离线验收与试听包交付（2026-10-29）
+
+用户已同意实施600 Hz目标音调前端；本轮离线验收完成，最终调试签名HAP已准备，手机HDC枚举为空，**尚未安装此新版，真机质量待验**。2026-10-28初版安装/采集/安静与人声截图计分仍有效。手机仅为只读算法检验器，不计入0.0自动发射验收；设备USB/RF任务暂停，未打开串口、采集麦克风或操作账本。
+
+### 变化与主链
+
+实际接入仍为原`OH_AudioCapturer → 有界队列 → 单一worker → CwDecoder → demod_morse`；在该C实现原整流包络前增加中心600 Hz、Q=5的RBJ二阶带通（中心增益1，约120 Hz带宽，中心群延迟约2.65ms）。状态归原decoder，随init复位，逐样本连续；无音频回调分配、无新线程或另一个Morse解码器。原时序估计、门限、迟滞、字符表和UI未修改。中心延迟小不等于零包络失真，真实声学效果待验。
+
+唯一算法真源为原固定上游提交加`patches/multimon-ng/multimon-threshold-hysteresis.patch`。补丁新增编译期选项`CW_TARGET_TONE_HZ`，默认0；手机生产CMake及受影响采集host测试明确600，native对照分别编译0/600。桌面已运行的外部源码/二进制未替换。无新入口、服务、协议、依赖或持久化格式；使用工具链既有libm。手机实际ARM64 build.ninja及签名副本均核对有`CW_TARGET_TONE_HZ=600`，副本关键源码与主目录逐字节相同，不在副本开发。
+
+### 同输入对照与最小回归
+
+复现命令（输出目录必须不存在，路径用绝对路径；PATCHED_SOURCE须为固定上游加当前补丁）：
+
+```bash
+bash apps/harmony-cw/native/tests/run_tone_benchmark.sh OUTDIR PATCHED_SOURCE REFERENCE_DIR
+bash apps/harmony-cw/tests/run_tests.sh
+bash apps/harmony-cw/build.sh
+```
+
+本轮使用已有`data/cw-reference-20261028-145552`标准音频/135字符答案/scorer，不重新制作手机测试平台、不录音。结果：
+
+| case | legacy CER % | 600 Hz CER % | delta pp | legacy edits | 600 edits |
+|---|---|---|---|---|---|
+| clean-15wpm | 0.741 | 0.741 | +0.000 | 1 | 1 |
+| clean-20wpm | 0.000 | 0.000 | +0.000 | 0 | 0 |
+| offset-590hz-20wpm | 0.000 | 0.000 | +0.000 | 0 | 0 |
+| offset-610hz-20wpm | 0.000 | 0.000 | +0.000 | 0 | 0 |
+| interferer-1000hz-20wpm | 100.000 | 0.000 | -100.000 | 135 | 0 |
+| interferer-1500hz-20wpm | 100.000 | 0.000 | -100.000 | 135 | 0 |
+
+
+1000/1500 Hz干扰是对同一20WPM PCM全段叠加峰值0.18的连续正弦，原CW峰值0.45，未截幅。旧版这两案输出34个非空格字符的错误片段（逐字符计分为34替换、101漏字，合计135编辑）；新版逐字正确。590/610 Hz用原signal编码/时间轴/包络重新合成同文；这些是合成探针，**不代表真实语音或手机准确率**。15WPM仍首V→X（1替换），未剔除开头错误；20WPM全段正确，未证实任何长期漂移问题。固定600 Hz本版不自动选频，明显偏离的音调会衰减，带内人声/噪声仍可能干扰。
+
+`benchmark-final.log`及`bench-final/benchmark.json`记录完整命令/结果，exit0。宏0/600各自与同配置独立CLI逐字节一致；CQ TEST、有/无/合成尾静音、37样本/随机/单样本分块、单实例/clear/finish契约全部通过。`capture-host.log` exit0，实际生产capture_session/worker/decoder以600编译通过原故障/生命周期用例。新宏0与原既有harness的完整15/20WPM字节一致，保存译文与评分于`codex-check/`。从固定上游独立应用补丁后，两源码与手机逐字节相同（`projection-check/`）。不重跑设备/桌面/全仓测试。
+
+### 构建与产物
+
+- WSL最终未签名构建exit0，17s133ms；Windows既有隔离签名副本最终构建exit0，39s987ms。最后一轮仅同步包内源码来源说明，原生库SHA与前轮一致，无需重复算法回归。
+- 最终签名包：`.local-backups/harmony-tone-20261029-021422/cw-decoder-600hz-final-signed.hap`，1542627字节，SHA256 `2085048da762dbf5a78ed3ea90cb91c1d26ec705c2369c485b399adf6b6eb927`。
+- 最终未签名包：`.local-backups/harmony-tone-20261029-021422/cw-decoder-600hz-final-unsigned.hap`，SHA256 `b3526dd202b475c1f59057bedac99b521d726b4257d2ed52094d04a221c1c4cb`。两包均为ARM64；不同平台工具链构建的so散列分别保留，不把它们说成逐字节一致。
+- SDK `verify-app`对最终签名包exit0，包内代码签名/摘要/权限签名验证通过；日志`verify-final-private.log`仅本地保留。首次验签误用`-outFile`参数exit1，查公开帮助后改为必需的`-outCertChain/-outProfile`通过，无签名密钥读取或复制。
+- 包内`multimon-source.md`已与当前PROVENANCE逐字节一致，补丁SHA `e665984dd6d7e226bdfa9d64793ee8549a2fd8a407ee253683a2f8edfa6160dd`；无WAV/PCM测试音频。`final-artifacts.json`保留两HAP及原生库SHA、来源说明/源码同步核查。
+
+### 审议、限制与保护
+
+Codex设计和阶段自查、DSH实现及自查、Codex独立复核。DSH v1在全CLI构建阶段300秒超时（exit124），不计完整验收报告；v2只读审议exit0，源代码无S0/S1，指出完整对照尚未结束及来源说明旧叙述。随后Codex完成实际对照exit0并修正来源说明及包内副本；本节据最终证据收口。DSH报告中“清洁两档CER0/20WPM丢前导XV/无时序失真”等概括不准确，未采纳：独立评分为15WPM0.741%、20WPM0%，延迟不是零失真证明。不存在未解决的S0/S1。
+
+| 检查 | 最终结论 |
+|---|---|
+| R01/R02/R13 | 通过：仅用户批准的第一项，原手机主链接入，同一补丁精确投影；无第二解码器/新入口/服务/真源 |
+| R03 | 不适用数据迁移；编译选项默认0且保持旧输出，无运行时公共接口变更 |
+| R04 | 通过限定离线：原采样格式门禁保留，双精度稳定滤波，输出限S16域，系数极点半径约0.983<1；仅使用0/600编译配置 |
+| R05/R08 | 发射不适用；无新增权限/网络/录音，未启动手机采集 |
+| R06/R07/R09 | 通过受影响host范围：原停止/队列/worker/生命周期契约通过，不外推真机底层资源释放 |
+| R10 | 通过限定离线：同PCM、旧行为、CLI字节、分块、worker、HAP及验签；新版手机声学/长时未验 |
+| R11 | 通过：Git干净基线79461d8，before.tar与signing-project-before.tar覆盖修改源码/旧构建/签名工作副本；未清理账本或原HAP |
+| R12 | 通过：MEMORY/ROADMAP/任务/本证据更新；手机README及源码来源旧状态同步 |
+
+S3保留：GCC提示`abs(int_fast32_t)`到int的潜在收窄，实际输入是S16或显式限S16后的滤波输出，范围[-32768,32767]，不存在该调用的值截断；这是类型告警，未隐藏为零告警。其他完整CLI上游告警不作为本轮新功能证明。普通`diff --check`会对补丁文件中新增的“上游上下文空行前缀”报告4处空白，已独立检查补丁可应用且投影一致；以临时`core.whitespace=-blank-at-eol`检查其余错误exit0，未改全局或仓库配置。
+
+保护目录：`.local-backups/harmony-tone-20261029-021422/`。`before.tar`保存原手机源码/构建/补丁/状态文档，`signing-project-before.tar`保存原签名工作副本和旧HAP；Git基线79461d8。头次备份多复制DSH profiles依赖后停止了不必要的node_modules复制，原文件未修改，partial副本保留，headless配置另行完整保存。没有提交/推送。旧手机已安装版本不变。
+
+下一步仅需连接已授权手机、覆盖安装最终签名HAP，用原600 Hz、15/20WPM同音量距离对照，观察原文及开头错误；安静/人声条件分别记，不录音。不自动推进第二项时序改进；手机未连接不重做既有初版安装验收。
+
+---
+
+以下为2026-10-28原任务历史证据，未安装等描述仅对应当时阶段。
+
+
 日期：2026-10-28。作者：Codex；DSH负责host桥接、第一阶段设计复核及采集路径交叉审议/故障注入。状态：**限定离线交付，未签名HAP构建通过；真机未验、任务未整体关闭**。
 
 ## 用户目标、主链与修改边界

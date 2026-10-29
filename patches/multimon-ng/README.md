@@ -5,8 +5,9 @@
 - 上游：https://github.com/EliasOenal/multimon-ng
 - 精确基线：`b5f7d71c5e9b5a76093ba55c515968dc40f92804`，该提交 CMake 声明版本 1.6.2。
 - 补丁：`multimon-threshold-hysteresis.patch`，修改 `demod_morse.c`、`multimon.h`。
-- 补丁 SHA256：`6cf69c5b34e76bb07e627a837f470ce6ad1f810fb7888a4b803e02ff3b8b1f66`。
+- 补丁 SHA256：`e665984dd6d7e226bdfa9d64793ee8549a2fd8a407ee253683a2f8edfa6160dd`。
 - 内容：噪声底跟踪、40%/28% 双门限迟滞、较快峰值衰减和最低信号裕量；保留固定门限模式原语义。
+- 可选目标音调前端：编译期宏 `CW_TARGET_TONE_HZ`，默认 `0`（不开滤波，保持旧行为）；非零值在整流/包络前插入一个 0 dB 峰值增益、Q=5 的 RBJ 带通双二阶，状态随 `demod_state` 初始化。手机工程明确定义 `600`；无运行时参数。
 - 许可证：上游整体 GPL-2.0-or-later，原文件声明保留；本补丁按 GPL-2.0-or-later 分发。许可证全文见本目录 `COPYING`。
 
 ## Linux/WSL 源码构建
