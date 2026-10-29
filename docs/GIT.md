@@ -6,7 +6,7 @@
 
 用户授权上传鸿蒙与Android软件。沿现有main同步两端源码/600Hz补丁及任务证据，并在`mobile-cw-20261029`预发布提供Android APK、HarmonyOS未签名HAP、完整相关源码ZIP、安装说明和SHA256SUMS。鸿蒙设备绑定签名配置/profile与私钥留在本地，公开HAP需使用者自行签名。此发布不表示0.0自动发射验收完成。最终远端提交/资产核验状态见MEMORY顶部。
 
-修改前保护`.local-backups/mobile-github-20261029-223356/`含完整Git bundle、dirty差异和未跟踪文件归档。沿用既有构建/专项证据；仅上传不重复产品测试或设备操作。
+修改前保护`.local-backups/mobile-github-20261029-223356/`含完整Git bundle、dirty差异和未跟踪文件归档。沿用既有构建/专项证据；仅上传不重复产品测试或设备操作。源码提交`cc1d477`已推送；[公开预发布下载](https://github.com/StianCican/cwstation/releases/tag/mobile-cw-20261029)的5项资产已逐项核对远端大小/SHA256并确认正式公开，详细状态见MEMORY顶部。
 
 ## GitHub 上传（2026-10-23）
 

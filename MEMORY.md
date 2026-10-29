@@ -2,11 +2,11 @@
 
 更新日期：2026-10-29。
 
-## 当前任务：手机双端GitHub同步（2026-10-29，发布准备）
+## 当前任务：手机双端GitHub同步（2026-10-29，已上传并核验）
 
 - 用户明确要求把鸿蒙和Android软件上传GitHub。目标为现有公开仓库StianCican/cwstation的main与mobile-cw-20261029预发布；源码推送加APK/未签名HAP/对应源码/校验说明。鸿蒙本机绑定设备的签名HAP/profile不上传，公开HAP需用户自行签名。不是0.0产品发布。
 - 开始时main79461d8领先origin2提交，已有手机源码/文档dirty；保护`.local-backups/mobile-github-20261029-223356/`含完整repository-before.bundle、dirty-before.patch、未跟踪源码/无关简报归档与状态副本。无关社团进度简报不纳入本次提交。沿原Git入口，无代码改动/硬件/录音/全仓重测。
-- 发布包本地SHA与既有验收产物一致，最终推送/预发布资产验证完成后更新本条；准备不等于已经上传。
+- 两端源码/共享600Hz补丁及证据已随提交`cc1d477520c3cd71888a3f146ccecc2301c359de`推送main；此前领先的两次提交一并同步。公开预发布：https://github.com/StianCican/cwstation/releases/tag/mobile-cw-20261029 ，对应同一源码提交，包含APK、未签名HAP、完整相关源码ZIP、INSTALL.txt和SHA256SUMS.txt共5资产；逐一核对GitHub资产大小与SHA256均与本地一致，发布后API确认draft=false/prerelease=true、下载地址使用正式标签。原始远端JSON保存在上述保护目录。这里只完成上传，不新增产品/真机验收；下方较早的“未提交/未推送”是历史阶段状态，由本条替代。
 
 ## 当前任务：Android CW只读解码检验器（2026-10-29，限定离线已交付/待Android真机）
 
